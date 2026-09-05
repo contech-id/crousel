@@ -2,6 +2,8 @@ import { BadgeCheck, Mail, Menu, Phone, Search, ShoppingBag, User, X } from 'luc
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/atoms/ui/button'
+import { useCart } from '@/hooks/useCart'
+import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
   { label: 'Beranda', href: '/' },
@@ -14,6 +16,8 @@ const navLinks = [
 ]
 
 export function StoreNavbar() {
+  const { itemCount } = useCart()
+  const { isAuthenticated } = useAuth()
   const [announcementVisible, setAnnouncementVisible] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const announcementState = useRef(true)
@@ -60,15 +64,21 @@ export function StoreNavbar() {
             {navLinks.map((link, index) => (
               <a key={link.label} href={link.href} className={`relative py-7 text-[13px] font-medium transition-colors hover:text-foreground ${index === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                 <span className="inline-flex items-center gap-1">{link.label}</span>
-                {index === 0 && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-secondary" />}
               </a>
             ))}
           </div>
 
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="rounded-full" aria-label="Cari produk"><Search aria-hidden="true" className="size-[19px]" /></Button>
-            <Button variant="ghost" size="icon" className="hidden rounded-full sm:inline-flex" aria-label="Akun saya"><User aria-hidden="true" className="size-[19px]" /></Button>
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Keranjang belanja"><ShoppingBag aria-hidden="true" className="size-[19px]" /></Button>
+            <Button variant="ghost" size="icon" className="hidden rounded-full sm:inline-flex" aria-label={isAuthenticated ? 'Profil saya' : 'Masuk atau daftar'} asChild>
+              <a href={isAuthenticated ? '/profil' : '/login'}><User aria-hidden="true" className="size-[19px]" /></a>
+            </Button>
+            <Button variant="ghost" size="icon" className="relative rounded-full" aria-label={`Keranjang belanja${itemCount > 0 ? `, ${itemCount} produk` : ''}`} asChild>
+              <a href="/keranjang">
+                <ShoppingBag aria-hidden="true" className="size-[19px]" />
+                {itemCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold leading-4 text-secondary-foreground">{itemCount > 99 ? '99+' : itemCount}</span>}
+              </a>
+            </Button>
             <Button variant="ghost" size="icon" className="ml-1 rounded-full lg:hidden" aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>
               {mobileOpen ? <X aria-hidden="true" className="size-5" /> : <Menu aria-hidden="true" className="size-5" />}
             </Button>
@@ -78,7 +88,7 @@ export function StoreNavbar() {
         <div className={`border-t border-border/60 bg-background lg:hidden ${mobileOpen ? 'block' : 'hidden'}`}>
           <div className="mx-auto flex max-w-[90rem] flex-col px-4 py-3 sm:px-6">
             {navLinks.map((link) => <a key={link.label} href={link.href} onClick={() => setMobileOpen(false)} className="border-b border-border/50 py-3 text-sm font-medium text-muted-foreground last:border-0 hover:text-foreground">{link.label}</a>)}
-            <a href="/account" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 py-3 text-sm font-medium text-muted-foreground sm:hidden"><User aria-hidden="true" className="size-4" /> Akun saya</a>
+            <a href={isAuthenticated ? '/profil' : '/login'} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 py-3 text-sm font-medium text-muted-foreground sm:hidden"><User aria-hidden="true" className="size-4" /> {isAuthenticated ? 'Profil saya' : 'Masuk atau daftar'}</a>
           </div>
         </div>
       </nav>

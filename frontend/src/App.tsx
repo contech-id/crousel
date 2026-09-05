@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 
+import { CartProvider } from '@/hooks/useCart'
+import { AuthProvider } from '@/hooks/useAuth'
 import { AboutPage } from '@/pages/AboutPage'
 import { CollectionPage } from '@/pages/CollectionPage'
 import { ContactPage } from '@/pages/ContactPage'
 import { CategoryPage } from '@/pages/CategoryPage'
+import { CartPage } from '@/pages/CartPage'
+import { CheckoutPage } from '@/pages/CheckoutPage'
 import { HomePage } from '@/pages/HomePage'
 import { HowToOrderPage } from '@/pages/HowToOrderPage'
+import { LoginPage } from '@/pages/LoginPage'
+import { ProductDetailPage } from '@/pages/ProductDetailPage'
+import { ProfilePage } from '@/pages/ProfilePage'
+import { RegisterPage } from '@/pages/RegisterPage'
 import { ShopPage } from '@/pages/ShopPage'
 import { SizeGuidePage } from '@/pages/SizeGuidePage'
 
@@ -51,22 +59,38 @@ function App() {
     }
   }, [])
 
-  switch (route) {
-    case 'belanja':
-    case 'shop': return <ShopPage />
-    case 'kategori': return <CategoryPage />
-    case 'koleksi':
-    case 'collection': return <CollectionPage />
-    case 'tentang':
-    case 'about': return <AboutPage />
-    case 'panduan-ukuran':
-    case 'size-guide': return <SizeGuidePage />
-    case 'cara-memesan':
-    case 'how-to-order': return <HowToOrderPage />
-    case 'kontak':
-    case 'contact': return <ContactPage />
-    default: return <HomePage />
+  let page
+
+  if (route.startsWith('produk/')) {
+    page = <ProductDetailPage slug={decodeURIComponent(route.slice('produk/'.length))} />
+  } else {
+    switch (route) {
+      case 'belanja':
+      case 'shop': page = <ShopPage />; break
+      case 'kategori': page = <CategoryPage />; break
+      case 'koleksi':
+      case 'collection': page = <CollectionPage />; break
+      case 'tentang':
+      case 'about': page = <AboutPage />; break
+      case 'panduan-ukuran':
+      case 'size-guide': page = <SizeGuidePage />; break
+      case 'cara-memesan':
+      case 'how-to-order': page = <HowToOrderPage />; break
+      case 'kontak':
+      case 'contact': page = <ContactPage />; break
+      case 'keranjang':
+      case 'cart': page = <CartPage />; break
+      case 'checkout': page = <CheckoutPage />; break
+      case 'login': page = <LoginPage />; break
+      case 'daftar':
+      case 'register': page = <RegisterPage />; break
+      case 'profil':
+      case 'profile': page = <ProfilePage />; break
+      default: page = <HomePage />
+    }
   }
+
+  return <AuthProvider><CartProvider>{page}</CartProvider></AuthProvider>
 }
 
 export default App
