@@ -1,0 +1,250 @@
+openapi: 3.0.3
+info:
+  title: Crousel Ecommerce API
+  description: API autentikasi dan profil pengguna untuk aplikasi ecommerce.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development
+tags:
+  - name: Authentication
+    description: Registrasi, login, dan logout pengguna
+  - name: Profile
+    description: Data profil pengguna yang sedang login
+paths:
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Registrasi akun baru
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              name: Budi Santoso
+              whatsapp: '081234567890'
+              password: rahasia123
+      responses:
+        '201':
+          description: Registrasi berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                message: Registrasi berhasil.
+                data:
+                  user:
+                    id: 1
+                    name: Budi Santoso
+                    whatsapp: '6281234567890'
+                    birth_date: null
+                    gender: null
+                    province: null
+                    regency: null
+                    district: null
+                    village: null
+                    postal_code: null
+                    address: null
+                    created_at: '2026-09-05T13:00:00.000000Z'
+                    updated_at: '2026-09-05T13:00:00.000000Z'
+                  token: 1|example-token
+                  token_type: Bearer
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login dengan nomor WhatsApp
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              whatsapp: '+6281234567890'
+              password: rahasia123
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout dan cabut token aktif
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Logout berhasil.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /profile:
+    get:
+      tags: [Profile]
+      summary: Ambil profil pengguna yang sedang login
+      operationId: getProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil pengguna
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+    patch:
+      tags: [Profile]
+      summary: Perbarui profil pengguna
+      description: Semua field bersifat opsional; hanya field yang dikirim yang diperbarui. Kirim null untuk mengosongkan field profil.
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            example:
+              name: Budi Santoso
+              whatsapp: '081234567890'
+              birth_date: '1995-08-17'
+              gender: male
+              province: Jawa Barat
+              regency: Kota Bandung
+              district: Coblong
+              village: Dago
+              postal_code: '40135'
+              address: Jl. Contoh No. 10
+      responses:
+        '200':
+          description: Profil berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+      description: Gunakan token dari endpoint register/login sebagai `Bearer <token>`.
+  schemas:
+    User:
+      type: object
+      required: [id, name, whatsapp, birth_date, gender, province, regency, district, village, postal_code, address, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, example: 1 }
+        name: { type: string, maxLength: 100, example: Budi Santoso }
+        whatsapp: { type: string, description: Nomor disimpan dalam format internasional tanpa tanda plus, pattern: '^62[0-9]{8,13}$', example: '6281234567890' }
+        birth_date: { type: string, format: date, nullable: true, example: '1995-08-17' }
+        gender: { type: string, enum: [male, female, other], nullable: true, example: male }
+        province: { type: string, nullable: true, example: Jawa Barat }
+        regency: { type: string, nullable: true, example: Kota Bandung }
+        district: { type: string, nullable: true, example: Coblong }
+        village: { type: string, nullable: true, example: Dago }
+        postal_code: { type: string, nullable: true, example: '40135' }
+        address: { type: string, nullable: true, example: Jl. Contoh No. 10 }
+        created_at: { type: string, format: date-time, example: '2026-09-05T13:00:00.000000Z' }
+        updated_at: { type: string, format: date-time, example: '2026-09-05T13:00:00.000000Z' }
+    RegisterRequest:
+      type: object
+      required: [name, whatsapp, password]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        whatsapp: { type: string, description: Menerima 08..., 8..., 62..., atau +62...; disimpan sebagai 62..., example: '081234567890' }
+        password: { type: string, format: password, minLength: 8, maxLength: 72 }
+    LoginRequest:
+      type: object
+      required: [whatsapp, password]
+      properties:
+        whatsapp: { type: string, example: '081234567890' }
+        password: { type: string, format: password }
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        whatsapp: { type: string, example: '081234567890' }
+        birth_date: { type: string, format: date, nullable: true }
+        gender: { type: string, enum: [male, female, other], nullable: true }
+        province: { type: string, maxLength: 100, nullable: true }
+        regency: { type: string, maxLength: 100, nullable: true }
+        district: { type: string, maxLength: 100, nullable: true }
+        village: { type: string, maxLength: 100, nullable: true }
+        postal_code: { type: string, maxLength: 10, nullable: true }
+        address: { type: string, maxLength: 500, nullable: true }
+    AuthResponse:
+      type: object
+      required: [message, data]
+      properties:
+        message: { type: string }
+        data:
+          type: object
+          required: [user, token, token_type]
+          properties:
+            user: { $ref: '#/components/schemas/User' }
+            token: { type: string, example: 1|example-token }
+            token_type: { type: string, example: Bearer }
+    ProfileResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          properties:
+            user: { $ref: '#/components/schemas/User' }
+    MessageResponse:
+      type: object
+      properties:
+        message: { type: string }
+    ValidationError:
+      type: object
+      properties:
+        message: { type: string, example: The given data was invalid. }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+          example:
+            whatsapp: [The whatsapp has already been taken.]
+    UnauthenticatedError:
+      type: object
+      properties:
+        message: { type: string, example: Unauthenticated. }
+  responses:
+    ValidationError:
+      description: Data tidak valid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ValidationError' }
+    Unauthenticated:
+      description: Token tidak ada atau tidak valid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/UnauthenticatedError' }
