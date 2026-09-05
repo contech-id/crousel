@@ -20,7 +20,6 @@ export type Product = {
   width?: string
   wedgeHeight?: string
   packagingWeight?: string
-  purchaseUrl: string
   availability: 'Tersedia' | 'Pre-order' | 'Habis'
 }
 
@@ -57,7 +56,6 @@ export const products: readonly Product[] = [
     footLengthRecommendation: '23–25,5 cm',
     width: '9,5 cm',
     packagingWeight: '±650 g',
-    purchaseUrl: 'https://shopee.co.id/crousel.official',
     availability: 'Tersedia',
   },
   {
@@ -91,7 +89,6 @@ export const products: readonly Product[] = [
     footLengthRecommendation: '25–28 cm',
     width: '10,5 cm',
     packagingWeight: '±780 g',
-    purchaseUrl: 'https://shopee.co.id/crousel.official',
     availability: 'Tersedia',
   },
   {
@@ -125,7 +122,6 @@ export const products: readonly Product[] = [
     footLengthRecommendation: '23–27 cm',
     width: '10 cm',
     packagingWeight: '±620 g',
-    purchaseUrl: 'https://shopee.co.id/crousel.official',
     availability: 'Tersedia',
   },
   {
@@ -160,7 +156,6 @@ export const products: readonly Product[] = [
     footLengthRecommendation: '17,5–20,5 cm',
     width: '8 cm',
     packagingWeight: '±480 g',
-    purchaseUrl: 'https://shopee.co.id/crousel.official',
     availability: 'Tersedia',
   },
   {
@@ -196,7 +191,6 @@ export const products: readonly Product[] = [
     width: '9,5 cm',
     wedgeHeight: '5 cm',
     packagingWeight: '±850 g',
-    purchaseUrl: 'https://shopee.co.id/crousel.official',
     availability: 'Tersedia',
   },
 ]

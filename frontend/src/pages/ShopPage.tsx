@@ -51,7 +51,7 @@ export function ShopPage() {
           </div>
         </div>
         {filteredProducts.length > 0 ? (
-          <div className="grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-5">
             {filteredProducts.map((product) => (
               <ProductCard key={product.slug} product={product} />
             ))}
