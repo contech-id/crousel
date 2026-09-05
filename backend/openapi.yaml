@@ -183,7 +183,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema: { $ref: '#/components/schemas/ProductRequest' }
             example:
               slug: luna-sandal
@@ -193,7 +193,7 @@ paths:
               model: Luna Classic Slide
               color: Sand Beige
               availableColors: [Sand Beige, Jet Black, Cloud White]
-              images: [https://example.com/luna.jpg]
+              images: [luna-front.jpg, luna-side.jpg]
               shortDescription: Slide ringan dengan siluet minimal.
               description: Luna menghadirkan langkah santai yang tetap terlihat rapi.
               price: Rp249.000
@@ -253,6 +253,7 @@ paths:
     patch:
       tags: [Products]
       summary: Perbarui produk berdasarkan ID
+      description: Gunakan `multipart/form-data` untuk field produk dan file gambar. Jika client tidak dapat mengirim file dengan metode PATCH, kirim POST ke URL yang sama dengan field `_method=PATCH`.
       operationId: updateProduct
       security:
         - bearerAuth: []
@@ -261,7 +262,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema: { $ref: '#/components/schemas/ProductUpdateRequest' }
       responses:
         '200':
@@ -471,7 +472,7 @@ components:
         model: { type: string, example: Luna Classic Slide }
         color: { type: string, example: Sand Beige }
         availableColors: { type: array, items: { type: string }, example: [Sand Beige, Jet Black, Cloud White] }
-        images: { type: array, items: { type: string }, example: [https://example.com/luna.jpg] }
+        images: { type: array, items: { type: string, format: uri }, description: 'URL publik gambar yang dikembalikan API.', example: [http://localhost:8000/storage/products/luna-front.jpg] }
         shortDescription: { type: string, example: Slide ringan dengan siluet minimal untuk hari yang aktif. }
         description: { type: string, example: Luna menghadirkan langkah santai yang tetap terlihat rapi. }
         price: { type: string, example: Rp249.000 }
@@ -503,7 +504,7 @@ components:
         model: { type: string, maxLength: 150 }
         color: { type: string, maxLength: 100 }
         availableColors: { type: array, minItems: 1, items: { type: string } }
-        images: { type: array, minItems: 1, items: { type: string } }
+        images: { type: array, minItems: 1, items: { type: string, format: binary }, description: 'Satu atau beberapa file gambar (JPEG, PNG, WebP, atau GIF), maksimal 5 MB per file.' }
         shortDescription: { type: string, maxLength: 1000 }
         description: { type: string }
         price: { type: string, maxLength: 50 }
@@ -527,7 +528,7 @@ components:
         model: { type: string, maxLength: 150 }
         color: { type: string, maxLength: 100 }
         availableColors: { type: array, items: { type: string } }
-        images: { type: array, items: { type: string } }
+        images: { type: array, items: { type: string, format: binary }, description: 'Opsional. Jika dikirim, seluruh gambar produk akan diganti dengan file baru (maksimal 5 MB per file).' }
         shortDescription: { type: string, maxLength: 1000 }
         description: { type: string }
         price: { type: string, maxLength: 50 }

@@ -7,6 +7,9 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Http\UploadedFile;
 
 class ProductController extends Controller
 {
@@ -18,46 +21,56 @@ class ProductController extends Controller
             $query->where('category', $request->string('category')->toString());
         }
 
-        return response()->json(['data' => $query->get()]);
+        return response()->json(['data' => $query->get()->map(fn (Product $product): array => $this->presentProduct($product, $request))]);
     }
 
-    public function byCategory(string $category): JsonResponse
+    public function byCategory(Request $request, string $category): JsonResponse
     {
         return response()->json([
             'data' => Product::query()
                 ->where('category', $category)
                 ->latest()
-                ->get(),
+                ->get()
+                ->map(fn (Product $product): array => $this->presentProduct($product, $request)),
         ]);
     }
 
     public function store(Request $request): JsonResponse
     {
-        $product = Product::create($this->validatedData($request));
+        $data = $this->validatedData($request);
+        $data['images'] = $this->storeImages($request);
+        $product = Product::create($data);
 
         return response()->json([
             'message' => 'Produk berhasil dibuat.',
-            'data' => ['product' => $product],
+            'data' => ['product' => $this->presentProduct($product, $request)],
         ], 201);
     }
 
-    public function show(Product $product): JsonResponse
+    public function show(Request $request, Product $product): JsonResponse
     {
-        return response()->json(['data' => ['product' => $product]]);
+        return response()->json(['data' => ['product' => $this->presentProduct($product, $request)]]);
     }
 
     public function update(Request $request, Product $product): JsonResponse
     {
-        $product->update($this->validatedData($request, $product));
+        $data = $this->validatedData($request, $product);
+        if (array_key_exists('images', $data)) {
+            $newImages = $this->storeImages($request);
+            $this->deleteImages($product);
+            $data['images'] = $newImages;
+        }
+        $product->update($data);
 
         return response()->json([
             'message' => 'Produk berhasil diperbarui.',
-            'data' => ['product' => $product->fresh()],
+            'data' => ['product' => $this->presentProduct($product->fresh(), $request)],
         ]);
     }
 
     public function destroy(Product $product): JsonResponse
     {
+        $this->deleteImages($product);
         $product->delete();
 
         return response()->json(['message' => 'Produk berhasil dihapus.']);
@@ -80,7 +93,7 @@ class ProductController extends Controller
             'availableColors' => [$required, 'array', 'min:1'],
             'availableColors.*' => ['string', 'max:100'],
             'images' => [$required, 'array', 'min:1'],
-            'images.*' => ['string', 'max:2048'],
+            'images.*' => ['file', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
             'shortDescription' => [$required, 'string', 'max:1000'],
             'description' => [$required, 'string'],
             'price' => [$required, 'string', 'max:50'],
@@ -96,5 +109,55 @@ class ProductController extends Controller
             'packagingWeight' => ['sometimes', 'nullable', 'string', 'max:100'],
             'availability' => [$required, 'string', Rule::in(['Tersedia', 'Pre-order', 'Habis'])],
         ]);
+    }
+
+    /**
+     * Store uploaded product images on the public disk and return database paths.
+     *
+     * @return list<string>
+     */
+    private function storeImages(Request $request): array
+    {
+        return collect($request->file('images', []))
+            ->filter(fn ($image): bool => $image instanceof UploadedFile)
+            ->map(fn (UploadedFile $image): string => $image->store('products', 'public'))
+            ->values()
+            ->all();
+    }
+
+    private function deleteImages(Product $product): void
+    {
+        $paths = json_decode((string) $product->getRawOriginal('images'), true);
+        if (!is_array($paths)) {
+            return;
+        }
+
+        foreach ($paths as $path) {
+            // Only remove files created by this endpoint; preserve legacy/external URLs.
+            if (is_string($path) && Str::startsWith($path, 'products/')) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+    }
+
+    /**
+     * Return a serialized product with browser-ready image URLs.
+     *
+     * @return array<string, mixed>
+     */
+    private function presentProduct(Product $product, Request $request): array
+    {
+        $data = $product->toArray();
+        $paths = json_decode((string) $product->getRawOriginal('images'), true);
+        $paths = is_array($paths) ? $paths : [];
+        $data['images'] = array_values(array_map(function ($path) use ($request): string {
+            if (!is_string($path) || Str::startsWith($path, ['http://', 'https://', '/'])) {
+                return (string) $path;
+            }
+
+            return rtrim($request->getSchemeAndHttpHost(), '/') . '/storage/' . ltrim($path, '/');
+        }, $paths));
+
+        return $data;
     }
 }
