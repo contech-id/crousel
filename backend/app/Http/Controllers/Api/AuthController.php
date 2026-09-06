@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\AdminNotification;
+use App\Models\NotificationSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -22,6 +24,9 @@ class AuthController extends Controller
         ]);
 
         $user = User::create($validated);
+        if (NotificationSetting::firstOrCreate(['id' => 1])->new_customer) {
+            AdminNotification::create(['type' => 'new_customer', 'title' => 'Pelanggan baru', 'message' => $user->name.' baru saja mendaftar.']);
+        }
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([

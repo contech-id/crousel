@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Crousel Ecommerce API
-  description: API autentikasi dan profil pengguna untuk aplikasi ecommerce.
+  description: API autentikasi customer/admin, pengaturan toko, katalog, dan notifikasi untuk aplikasi ecommerce.
   version: 1.0.0
 servers:
   - url: http://localhost:8000/api/v1
@@ -15,7 +15,26 @@ tags:
     description: Katalog produk ecommerce
   - name: Customers
     description: Data customer yang terdaftar
+  - name: Settings
+    description: Pengaturan toko, pengiriman, pembayaran, dan notifikasi
+  - name: Notifications
+    description: Histori notifikasi admin
+  - name: Admin Authentication
+    description: Autentikasi dan pengelolaan akun administrator
 paths:
+  /admin/auth/login:
+    post:
+      tags: [Admin Authentication]
+      summary: Login administrator
+      operationId: adminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminLoginRequest' }
+      responses:
+        '200': { description: Login berhasil }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /auth/register:
     post:
       tags: [Authentication]
@@ -364,6 +383,174 @@ paths:
               schema: { $ref: '#/components/schemas/MessageResponse' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /admin/auth/logout:
+    post:
+      tags: [Admin Authentication]
+      summary: Logout administrator
+      operationId: adminLogout
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Logout berhasil }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /admin/account:
+    get:
+      tags: [Admin Authentication]
+      summary: Ambil detail akun admin
+      operationId: getAdminAccount
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Detail akun admin }
+    put:
+      tags: [Admin Authentication]
+      summary: Perbarui detail akun admin
+      operationId: updateAdminAccount
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminAccountUpdate' }
+      responses:
+        '200': { description: Akun diperbarui }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/account/password:
+    put:
+      tags: [Admin Authentication]
+      summary: Ubah password admin
+      operationId: updateAdminPassword
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminPasswordUpdate' }
+      responses:
+        '200': { description: Password berhasil diubah }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /settings:
+    get:
+      tags: [Settings]
+      summary: Ambil seluruh pengaturan toko
+      operationId: getSettings
+      responses:
+        '200':
+          description: Pengaturan profil, pengiriman, pembayaran, dan notifikasi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SettingsResponse' }
+  /settings/profile:
+    put:
+      tags: [Settings]
+      summary: Simpan profil toko
+      operationId: updateStoreProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StoreProfile' }
+      responses:
+        '200': { description: Profil tersimpan }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Settings]
+      summary: Hapus profil toko
+      operationId: deleteStoreProfile
+      responses:
+        '200': { description: Profil dihapus }
+  /settings/shipping:
+    get:
+      tags: [Settings]
+      summary: Daftar metode pengiriman dummy RajaOngkir
+      operationId: getShippingMethods
+      responses:
+        '200': { description: Daftar metode pengiriman }
+  /settings/shipping/{shippingMethod}:
+    patch:
+      tags: [Settings]
+      summary: Aktif/nonaktifkan metode pengiriman
+      operationId: toggleShippingMethod
+      parameters:
+        - { name: shippingMethod, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ToggleRequest' }
+      responses:
+        '200': { description: Metode diperbarui }
+  /settings/payments:
+    get:
+      tags: [Settings]
+      summary: Daftar metode pembayaran dummy Midtrans
+      operationId: getPaymentMethods
+      responses:
+        '200': { description: Daftar metode pembayaran }
+  /settings/payments/{paymentMethod}:
+    patch:
+      tags: [Settings]
+      summary: Aktif/nonaktifkan metode pembayaran
+      operationId: togglePaymentMethod
+      parameters:
+        - { name: paymentMethod, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ToggleRequest' }
+      responses:
+        '200': { description: Metode diperbarui }
+  /settings/notifications:
+    get:
+      tags: [Settings]
+      summary: Ambil preferensi notifikasi
+      operationId: getNotificationSettings
+      responses:
+        '200': { description: Preferensi notifikasi }
+    put:
+      tags: [Settings]
+      summary: Simpan preferensi notifikasi
+      operationId: updateNotificationSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationSettings' }
+      responses:
+        '200': { description: Preferensi diperbarui }
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Histori notifikasi admin
+      operationId: getNotifications
+      responses:
+        '200': { description: Histori notifikasi dan jumlah belum dibaca }
+  /notifications/events:
+    post:
+      tags: [Notifications]
+      summary: Catat event notifikasi pelanggan/pesanan
+      operationId: createNotificationEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, title, message]
+              properties:
+                type: { type: string, enum: [new_customer, new_order] }
+                title: { type: string }
+                message: { type: string }
+      responses:
+        '200': { description: Event diproses sesuai preferensi notifikasi }
+  /notifications/{notification}/read:
+    patch:
+      tags: [Notifications]
+      summary: Tandai notifikasi telah dibaca
+      operationId: markNotificationRead
+      parameters:
+        - { name: notification, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Notifikasi diperbarui }
 components:
   securitySchemes:
     bearerAuth:
@@ -460,6 +647,84 @@ components:
           type: object
           properties:
             user: { $ref: '#/components/schemas/User' }
+    StoreProfile:
+      type: object
+      required: [store_name, store_email, whatsapp, province, regency, district, village, postal_code, address]
+      properties:
+        store_name: { type: string, maxLength: 150 }
+        store_email: { type: string, format: email }
+        whatsapp: { type: string, maxLength: 20 }
+        province: { type: string }
+        regency: { type: string }
+        district: { type: string }
+        village: { type: string }
+        postal_code: { type: string }
+        address: { type: string }
+        location_landmark: { type: string, nullable: true }
+    AdminLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    AdminAccount:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        username: { type: string }
+        phone: { type: string, nullable: true }
+        email: { type: string, format: email }
+        role: { type: string, example: admin }
+        is_active: { type: boolean }
+    AdminAccountUpdate:
+      type: object
+      required: [name, username, email]
+      properties:
+        name: { type: string }
+        username: { type: string }
+        phone: { type: string, nullable: true }
+        email: { type: string, format: email }
+    AdminPasswordUpdate:
+      type: object
+      properties:
+        password: { type: string, format: password, minLength: 8, nullable: true, description: Kosongkan untuk mempertahankan password saat ini }
+    ShippingMethod:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string, example: jne }
+        name: { type: string, example: JNE }
+        provider: { type: string, example: RajaOngkir }
+        is_active: { type: boolean }
+    PaymentMethod:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string, example: qris }
+        name: { type: string, example: QRIS }
+        type: { type: string, example: qris }
+        is_active: { type: boolean }
+    NotificationSettings:
+      type: object
+      properties:
+        new_customer: { type: boolean }
+        new_order: { type: boolean }
+    ToggleRequest:
+      type: object
+      required: [is_active]
+      properties:
+        is_active: { type: boolean }
+    SettingsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            profile: { $ref: '#/components/schemas/StoreProfile' }
+            shipping: { type: array, items: { $ref: '#/components/schemas/ShippingMethod' } }
+            payments: { type: array, items: { $ref: '#/components/schemas/PaymentMethod' } }
+            notifications: { $ref: '#/components/schemas/NotificationSettings' }
     Product:
       type: object
       required: [id, slug, name, category, target, model, color, availableColors, images, shortDescription, description, price, material, features, availableSizes, sandalLength, footLengthRecommendation, availability, created_at, updated_at]

@@ -103,10 +103,11 @@ export function CheckoutPage() {
     setDiscount(voucher.trim().toUpperCase() === 'CROUSEL10' ? Math.round(subtotal * 0.1) : 0)
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!canSubmit) return
     window.localStorage.setItem('crousel-orders', JSON.stringify([{ id: demoOrderNumber, date: new Date().toLocaleDateString('id-ID'), total, status: 'Menunggu pembayaran' }]))
+    void fetch(`${import.meta.env.VITE_API_URL}/notifications/events`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ type: 'new_order', title: 'Pesanan baru', message: `Pesanan ${demoOrderNumber} menunggu diproses.` }) }).catch(() => undefined)
     setOrderPlaced(true)
   }
 
