@@ -55,11 +55,42 @@ class ProductController extends Controller
     public function update(Request $request, Product $product): JsonResponse
     {
         $data = $this->validatedData($request, $product);
-        if (array_key_exists('images', $data)) {
-            $newImages = $this->storeImages($request);
-            $this->deleteImages($product);
-            $data['images'] = $newImages;
+
+        $currentImages = json_decode((string) $product->getRawOriginal('images'), true);
+        if (!is_array($currentImages)) $currentImages = [];
+
+        $imagesChanged = false;
+
+        if ($request->has('deletedImages') && is_array($request->input('deletedImages'))) {
+            $deletedUrls = $request->input('deletedImages');
+            foreach ($currentImages as $key => $path) {
+                $presentedUrl = $this->presentImagePath($path, $request);
+                if (in_array($presentedUrl, $deletedUrls) || in_array($path, $deletedUrls)) {
+                    if (is_string($path) && Str::startsWith($path, 'products/')) {
+                        Storage::disk('public')->delete($path);
+                    }
+                    unset($currentImages[$key]);
+                    $imagesChanged = true;
+                }
+            }
+            $currentImages = array_values($currentImages);
         }
+
+        if (array_key_exists('images', $data) && is_array($data['images'])) {
+            $newImages = $this->storeImages($request);
+            $currentImages = array_merge($currentImages, $newImages);
+            $imagesChanged = true;
+        }
+
+        if ($imagesChanged) {
+            if (count($currentImages) === 0) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'images' => ['Produk harus memiliki setidaknya 1 gambar.']
+                ]);
+            }
+            $data['images'] = $currentImages;
+        }
+
         $product->update($data);
 
         return response()->json([
@@ -86,27 +117,21 @@ class ProductController extends Controller
         return $request->validate([
             'slug' => [$required, 'string', 'max:150', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('products', 'slug')->ignore($product?->id)],
             'name' => [$required, 'string', 'max:150'],
-            'category' => [$required, 'string', 'max:100'],
+            'category' => [$required, 'string', Rule::in(['Slide', 'Slop', 'Wedges'])],
             'target' => [$required, 'string', Rule::in(['Women', 'Men', 'Unisex', 'Kids'])],
-            'model' => [$required, 'string', 'max:150'],
-            'color' => [$required, 'string', 'max:100'],
+            'color' => [$required, 'string', 'max:255'],
             'availableColors' => [$required, 'array', 'min:1'],
             'availableColors.*' => ['string', 'max:100'],
             'images' => [$required, 'array', 'min:1'],
             'images.*' => ['file', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
-            'shortDescription' => [$required, 'string', 'max:1000'],
+            'deletedImages' => ['sometimes', 'array'],
+            'deletedImages.*' => ['string'],
             'description' => [$required, 'string'],
             'price' => [$required, 'string', 'max:50'],
-            'material' => [$required, 'string', 'max:1000'],
             'features' => [$required, 'array'],
             'features.*' => ['string', 'max:255'],
             'availableSizes' => [$required, 'array', 'min:1'],
             'availableSizes.*' => ['string', 'max:30'],
-            'sandalLength' => [$required, 'string', 'max:100'],
-            'footLengthRecommendation' => [$required, 'string', 'max:100'],
-            'width' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'wedgeHeight' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'packagingWeight' => ['sometimes', 'nullable', 'string', 'max:100'],
             'availability' => [$required, 'string', Rule::in(['Tersedia', 'Pre-order', 'Habis'])],
         ]);
     }
@@ -140,6 +165,15 @@ class ProductController extends Controller
         }
     }
 
+    private function presentImagePath($path, Request $request): string
+    {
+        if (!is_string($path) || Str::startsWith($path, ['http://', 'https://', '/'])) {
+            return (string) $path;
+        }
+
+        return rtrim($request->getSchemeAndHttpHost(), '/') . '/storage/' . ltrim($path, '/');
+    }
+
     /**
      * Return a serialized product with browser-ready image URLs.
      *
@@ -150,13 +184,7 @@ class ProductController extends Controller
         $data = $product->toArray();
         $paths = json_decode((string) $product->getRawOriginal('images'), true);
         $paths = is_array($paths) ? $paths : [];
-        $data['images'] = array_values(array_map(function ($path) use ($request): string {
-            if (!is_string($path) || Str::startsWith($path, ['http://', 'https://', '/'])) {
-                return (string) $path;
-            }
-
-            return rtrim($request->getSchemeAndHttpHost(), '/') . '/storage/' . ltrim($path, '/');
-        }, $paths));
+        $data['images'] = array_values(array_map(fn ($path) => $this->presentImagePath($path, $request), $paths));
 
         return $data;
     }

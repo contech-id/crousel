@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { FooterSection } from '@/components/organisms/FooterSection'
 import { StoreNavbar } from '@/components/organisms/StoreNavbar'
 
 type AppShellProps = {
@@ -11,6 +12,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-background">
       <StoreNavbar />
       <main>{children}</main>
+      <FooterSection />
     </div>
   )
 }

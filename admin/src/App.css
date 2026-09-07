@@ -85,3 +85,16 @@ h2 { font-size: 1.15rem; line-height: 1.25; font-weight: 400; }
 @media (max-width: 640px) { .home-stat-grid { grid-template-columns: 1fr; }.performance-card, .category-card, .orders-card { padding: 22px; }.chart-area { gap: 6px; }.orders-head { min-width: 620px; }.orders-table { overflow-x: auto; }.orders-empty { min-width: 620px; } }
 @media (max-width: 640px) { .page-content { padding-top: 20px; } }
 @media (max-width: 760px) { .settings-page-wrap > .settings-account-button { position: static; width: 100%; margin-top: 12px; } }
+.color-toggle-field { display: grid; gap: 7px; color: #555550; font-size: 10px; font-weight: 800; }
+.color-toggle-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.color-toggle-chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; color: #777; background: #fff; cursor: pointer; font-size: 11px; font-weight: 700; transition: .2s; }
+.color-toggle-chip:hover { border-color: var(--yellow); }
+.color-toggle-chip.active { border-color: var(--yellow); color: #614e00; background: var(--yellow-soft); box-shadow: 0 2px 8px #fbbc0325; }
+.image-upload-field { display: grid; gap: 7px; }
+.image-preview-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.image-preview-item { position: relative; width: 80px; height: 80px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; }
+.image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+.image-preview-badge { position: absolute; bottom: 4px; left: 4px; border-radius: 6px; padding: 2px 6px; color: #fff; background: #42b873; font-size: 9px; font-weight: 800; pointer-events: none; }
+.image-delete-btn { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; display: grid; place-items: center; border: 0; border-radius: 50%; padding: 0; color: #fff; background: rgba(0,0,0,0.6); cursor: pointer; font-size: 14px; line-height: 1; transition: .2s; opacity: 0; }
+.image-preview-item:hover .image-delete-btn { opacity: 1; }
+.image-delete-btn:hover { background: #d9564a; }

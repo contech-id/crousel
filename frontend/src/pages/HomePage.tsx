@@ -1,4 +1,5 @@
 import { ArrowRight, Play, Sparkles, Star } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import heroImage from "@/assets/hero.png";
 import { Button } from "@/components/atoms/ui/button";
@@ -7,27 +8,40 @@ import { ContactSection } from "@/components/organisms/ContactSection";
 import { CategorySection } from "@/components/organisms/CategorySection";
 import { OrderStepsSection } from "@/components/organisms/OrderStepsSection";
 import { SizeGuideSection } from "@/components/organisms/SizeGuideSection";
+import { ScrollStackSection } from "@/components/organisms/ScrollStackSection";
+import { BrandMarqueeSection } from "@/components/organisms/BrandMarqueeSection";
+import { TrustedLeadersSection } from "@/components/organisms/TrustedLeadersSection";
+import { TestimonialsSection } from "@/components/organisms/TestimonialsSection";
 import { AppShell } from "@/components/templates/AppShell";
-import { products } from "@/lib/products";
+import type { Product } from "@/lib/products";
 
 export function HomePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/products`)
+      .then((res) => res.json())
+      .then((data) => setProducts(data.data || []))
+      .catch((err) => console.error("Gagal memuat produk:", err));
+  }, []);
+
   return (
     <AppShell>
-      <section id="home" className="overflow-hidden bg-muted/40">
+      <section id="home" className="overflow-hidden bg-muted/40" data-aos="fade-up" data-aos-duration="800">
         <div className="mx-auto grid max-w-[90rem] items-center gap-8 px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8 lg:px-8 lg:pb-24 lg:pt-20">
-          <div className="relative z-10">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-secondary/30 px-3.5 py-2 text-[11px] text-foreground">
+          <div className="relative z-10" data-aos="fade-up" data-aos-delay="100">
+            <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-secondary/30 px-3.5 py-2 text-[11px] text-foreground" data-aos="fade-up" data-aos-delay="200">
               <Sparkles aria-hidden="true" className="size-3.5" /> Dibuat untuk
               aktivitas harianmu
             </p>
-            <h1 className="max-w-xl text-5xl font-black leading-[1.02] tracking-[-0.06em] sm:text-6xl lg:text-[4.5rem]">
+            <h1 className="max-w-xl text-5xl font-black leading-[1.02] tracking-[-0.06em] sm:text-6xl lg:text-[4.5rem]" data-aos="fade-up" data-aos-delay="250">
               Crafted with passion &amp; pride on every inch of sandals.
             </h1>
-            <p className="mt-6 max-w-md text-base leading-7 text-muted-foreground sm:text-lg">
+            <p className="mt-6 max-w-md text-base leading-7 text-muted-foreground sm:text-lg" data-aos="fade-up" data-aos-delay="350">
               Sandal pilihan yang dibuat dengan penuh passion untuk menemani
               setiap cerita dan aktivitasmu.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            <div className="mt-8 flex flex-wrap items-center gap-4" data-aos="fade-up" data-aos-delay="450">
               <Button
                 variant="secondary"
                 size="lg"
@@ -51,7 +65,7 @@ export function HomePage() {
                 Lihat koleksi
               </a>
             </div>
-            <div className="mt-12 flex items-center gap-7">
+            <div className="mt-12 flex items-center gap-7" data-aos="fade-up" data-aos-delay="550">
               <div className="text-xs leading-5 text-muted-foreground">
                 Dipercaya oleh
                 <br />
@@ -72,19 +86,23 @@ export function HomePage() {
               </div>
             </div>
           </div>
-          <div className="relative mx-auto flex min-h-[390px] w-full max-w-[800px] items-center justify-center sm:min-h-[500px] lg:min-h-[600px]">
+          <div className="relative mx-auto flex min-h-[390px] w-full max-w-[800px] items-center justify-center sm:min-h-[500px] lg:min-h-[600px]" data-aos="fade-up" data-aos-delay="200" data-aos-duration="900">
             <div className="absolute right-4 top-1/2 aspect-square w-[78%] -translate-y-1/2 rounded-full bg-gradient-to-br from-secondary/80 via-secondary/35 to-transparent blur-3xl" />
             <img
               src={heroImage}
               alt="Sandal Crousel dengan desain modern"
               className="relative z-10 w-[94%] max-w-[680px] object-contain drop-shadow-[0_30px_25px_rgba(0,0,0,0.2)]"
+              data-aos="fade-up"
+              data-aos-delay="350"
             />
-            <span className="absolute bottom-[10%] left-[5%] z-20 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-background">
+            <span className="absolute bottom-[10%] left-[5%] z-20 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-background" data-aos="fade-up" data-aos-delay="500">
               Crousel / 01
             </span>
           </div>
         </div>
       </section>
+
+      <BrandMarqueeSection />
 
       <CategorySection />
 
@@ -105,7 +123,7 @@ export function HomePage() {
             Lihat katalog
           </a>
         </div>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-8 grid grid-cols-2 gap-5 lg:grid-cols-5">
           {products.slice(0, 5).map((product) => (
             <ProductCard key={product.slug} product={product} />
           ))}
@@ -180,15 +198,13 @@ export function HomePage() {
 
       <OrderStepsSection />
 
+      <ScrollStackSection />
+
+      <TestimonialsSection />
+
+      <TrustedLeadersSection />
+
       <ContactSection />
-      <footer className="border-t border-border px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>(c) 2024 Crousel Official</span>
-          <a href="/kontak" className="font-semibold hover:text-foreground">
-            Pusat bantuan dan informasi
-          </a>
-        </div>
-      </footer>
     </AppShell>
   );
 }

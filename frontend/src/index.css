@@ -154,3 +154,68 @@
   border: 0.9rem solid color-mix(in srgb, var(--secondary-foreground) 3%, transparent);
   background: color-mix(in srgb, var(--secondary-foreground) 1.5%, transparent);
 }
+
+/* Keep all AOS elements visible for users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  [data-aos] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none;
+  }
+}
+
+.brand-marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.brand-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: brand-marquee-scroll 28s linear infinite;
+}
+
+.brand-marquee-item {
+  display: inline-flex;
+  min-width: 10rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-right: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 0.9rem 1.25rem;
+  color: var(--muted-foreground);
+  background: var(--card);
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-mark {
+  display: inline-flex;
+  width: 1.7rem;
+  height: 1.7rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.55rem;
+  color: var(--secondary-foreground);
+  background: color-mix(in srgb, var(--secondary) 70%, transparent);
+  font-size: 0.7rem;
+}
+
+.brand-marquee:hover .brand-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes brand-marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 0.375rem)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-marquee-track {
+    animation: none;
+  }
+}

@@ -71,10 +71,6 @@ export function CheckoutPage() {
   const selectedCity = selectedProvince?.cities.find((item) => item.name === city)
   const selectedDistrict = selectedCity?.districts.find((item) => item.name === district)
   const selectedShipping = shippingMethods.find((item) => item.id === shippingId) ?? shippingMethods[0]
-  const totalWeight = items.reduce((total, item) => {
-    const weight = Number(item.product.packagingWeight?.replace(/[^\d]/g, '') ?? 0)
-    return total + weight * item.quantity
-  }, 0)
   const total = subtotal + selectedShipping.price - discount
 
   const canSubmit = Boolean(
@@ -194,7 +190,7 @@ export function CheckoutPage() {
               <div className="mt-6 flex gap-2"><input value={voucher} onChange={(event) => setVoucher(event.target.value)} className={`${inputClassName} h-10`} placeholder="Kode voucher" /><Button type="button" variant="outline" className="h-10 rounded-xl px-3" onClick={handleVoucher}>Pakai</Button></div>
               {voucher && <p className={`mt-2 text-xs ${discount > 0 ? 'text-emerald-600' : 'text-destructive'}`}>{discount > 0 ? 'Voucher CROUSEL10 berhasil digunakan.' : 'Kode voucher belum valid.'}</p>}
               <div className="my-5 border-t border-border" />
-              <div className="space-y-3 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div><div className="flex justify-between"><span className="text-muted-foreground">Pengiriman</span><span>{selectedShipping.price === 0 ? 'Gratis' : formatPrice(selectedShipping.price)}</span></div>{discount > 0 && <div className="flex justify-between text-emerald-600"><span>Diskon voucher</span><span>− {formatPrice(discount)}</span></div>}<div className="flex justify-between"><span className="text-muted-foreground">Berat paket</span><span>{totalWeight.toLocaleString('id-ID')} g</span></div></div>
+              <div className="space-y-3 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div><div className="flex justify-between"><span className="text-muted-foreground">Pengiriman</span><span>{selectedShipping.price === 0 ? 'Gratis' : formatPrice(selectedShipping.price)}</span></div>{discount > 0 && <div className="flex justify-between text-emerald-600"><span>Diskon voucher</span><span>− {formatPrice(discount)}</span></div>}</div>
               <div className="my-5 border-t border-border" /><div className="flex justify-between"><span className="font-bold">Total</span><span className="text-xl font-black">{formatPrice(total)}</span></div>
               <Button type="submit" variant="secondary" size="lg" className="mt-6 w-full rounded-full" disabled={!canSubmit}>Buat pesanan</Button>
               {!canSubmit && <p className="mt-3 text-center text-[11px] leading-4 text-muted-foreground">Lengkapi alamat pengiriman untuk membuat pesanan.</p>}

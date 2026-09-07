@@ -27,8 +27,6 @@ return new class extends Migration
             $table->string('sandalLength', 100);
             $table->string('footLengthRecommendation', 100);
             $table->string('width', 100)->nullable();
-            $table->string('wedgeHeight', 100)->nullable();
-            $table->string('packagingWeight', 100)->nullable();
             $table->string('availability', 20)->index();
             $table->timestamps();
         });

@@ -62,7 +62,7 @@ function App() {
   let page
 
   if (route.startsWith('produk/')) {
-    page = <ProductDetailPage slug={decodeURIComponent(route.slice('produk/'.length))} />
+    page = <ProductDetailPage id={decodeURIComponent(route.slice('produk/'.length))} />
   } else {
     switch (route) {
       case 'belanja':

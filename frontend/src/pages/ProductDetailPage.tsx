@@ -3,26 +3,48 @@ import {
   Check,
   ExternalLink,
   Package,
-  Ruler,
   ShieldCheck,
   ShoppingCart,
   Truck,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/atoms/ui/button'
 import { ProductGallery } from '@/components/molecules/ProductGallery'
+import { SizeGuideTable } from '@/components/molecules/SizeGuideTable'
 import { AppShell } from '@/components/templates/AppShell'
 import { useCart } from '@/hooks/useCart'
 import { useAuth } from '@/hooks/useAuth'
-import { getProductBySlug } from '@/lib/products'
+import { sizeGuideTypes, sizeGuides, type SizeGuideType } from '@/lib/sizeGuide'
+import type { Product } from '@/lib/products'
 
 type ProductDetailPageProps = {
-  slug: string
+  id: string
 }
 
-export function ProductDetailPage({ slug }: ProductDetailPageProps) {
-  const product = getProductBySlug(slug)
+export function ProductDetailPage({ id }: ProductDetailPageProps) {
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/products/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setProduct(data.data?.product || null)
+      })
+      .catch(err => console.error("Gagal memuat produk:", err))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  if (loading) {
+    return (
+      <AppShell>
+         <section className="mx-auto max-w-[90rem] px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <p className="text-muted-foreground">Memuat produk...</p>
+         </section>
+      </AppShell>
+    )
+  }
 
   if (!product) {
     return (
@@ -47,11 +69,11 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
     )
   }
 
-  return <ProductDetail product={product} />
+      return <ProductDetail key={product.id} product={product} />
 }
 
 type ProductDetailProps = {
-  product: NonNullable<ReturnType<typeof getProductBySlug>>
+  product: Product
 }
 
 function ProductDetail({ product }: ProductDetailProps) {
@@ -60,13 +82,15 @@ function ProductDetail({ product }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [addedToCart, setAddedToCart] = useState(false)
+  const [selectedGuideType, setSelectedGuideType] = useState<SizeGuideType>(() => getSizeGuideType(product.target))
+  const selectedGuide = sizeGuides[selectedGuideType]
 
   const hasSelection = Boolean(selectedSize && selectedColor)
 
   const handleAddToCart = () => {
     if (!selectedSize || !selectedColor) return
     if (!isAuthenticated) {
-      window.location.href = `/login?redirect=${encodeURIComponent(`/produk/${product.slug}`)}`
+      window.location.href = `/login?redirect=${encodeURIComponent(`/produk/${product.id}`)}`
       return
     }
     addToCart(product, selectedSize, selectedColor)
@@ -76,7 +100,7 @@ function ProductDetail({ product }: ProductDetailProps) {
   const handleBuyNow = () => {
     if (!selectedSize || !selectedColor) return
     if (!isAuthenticated) {
-      window.location.href = `/login?redirect=${encodeURIComponent(`/produk/${product.slug}`)}`
+      window.location.href = `/login?redirect=${encodeURIComponent(`/produk/${product.id}`)}`
       return
     }
     addToCart(product, selectedSize, selectedColor)
@@ -90,11 +114,12 @@ function ProductDetail({ product }: ProductDetailProps) {
         <a
           href="/belanja"
           className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
+          data-scroll-static
         >
           <ArrowLeft aria-hidden="true" className="size-4" /> Kembali ke katalog
         </a>
 
-        <div className="mt-7 grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(25rem,0.95fr)] lg:gap-16">
+        <div className="mt-7 grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(25rem,0.95fr)] lg:gap-16" data-scroll-static>
           <ProductGallery name={product.name} images={product.images} />
 
           <div>
@@ -105,14 +130,14 @@ function ProductDetail({ product }: ProductDetailProps) {
               {product.name}
             </h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              {product.shortDescription}
+              {product.category}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-secondary/25 px-3 py-1 text-xs font-semibold text-secondary-foreground">
                 {product.availability}
               </span>
               <span className="text-xs text-muted-foreground">
-                {product.target} · {product.model}
+                {product.target}
               </span>
             </div>
             <p className="mt-6 text-2xl font-semibold">{product.price}</p>
@@ -215,23 +240,49 @@ function ProductDetail({ product }: ProductDetailProps) {
                 </li>
               ))}
             </ul>
+            <div className="mt-8 border-t border-border pt-6">
+              <h3 className="font-bold">Spesifikasi</h3>
+              <dl className="mt-4 divide-y divide-border text-sm sm:grid sm:grid-cols-2 sm:gap-x-8 sm:divide-y-0">
+                <div className="flex justify-between gap-4 border-b border-border py-3 sm:border-t"><dt className="text-muted-foreground">Kategori</dt><dd className="text-right font-medium">{product.category}</dd></div>
+                <div className="flex justify-between gap-4 border-b border-border py-3 sm:border-t"><dt className="text-muted-foreground">Target</dt><dd className="text-right font-medium">{product.target}</dd></div>
+              </dl>
+            </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <h3 className="font-bold">Spesifikasi</h3>
-            <dl className="mt-4 divide-y divide-border text-sm">
-              <div className="flex justify-between gap-4 py-3"><dt className="text-muted-foreground">Kategori</dt><dd className="text-right font-medium">{product.category}</dd></div>
-              <div className="flex justify-between gap-4 py-3"><dt className="text-muted-foreground">Target</dt><dd className="text-right font-medium">{product.target}</dd></div>
-              <div className="flex justify-between gap-4 py-3"><dt className="text-muted-foreground">Material</dt><dd className="max-w-[16rem] text-right font-medium">{product.material}</dd></div>
-              <div className="flex justify-between gap-4 py-3"><dt className="inline-flex items-center gap-2 text-muted-foreground"><Ruler aria-hidden="true" className="size-4" /> Panjang sandal</dt><dd className="text-right font-medium">{product.sandalLength}</dd></div>
-              <div className="flex justify-between gap-4 py-3"><dt className="text-muted-foreground">Rekomendasi telapak</dt><dd className="text-right font-medium">{product.footLengthRecommendation}</dd></div>
-              {product.width && <div className="flex justify-between gap-4 py-3"><dt className="text-muted-foreground">Lebar sandal</dt><dd className="text-right font-medium">{product.width}</dd></div>}
-              {product.wedgeHeight && <div className="flex justify-between gap-4 py-3"><dt className="text-muted-foreground">Tinggi wedges</dt><dd className="text-right font-medium">{product.wedgeHeight}</dd></div>}
-              {product.packagingWeight && <div className="flex justify-between gap-4 py-3"><dt className="text-muted-foreground">Berat packaging</dt><dd className="text-right font-medium">{product.packagingWeight}</dd></div>}
-            </dl>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Panduan ukuran</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">Tabel ukuran {selectedGuide.label}</h2>
+            <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Pilih jenis ukuran">
+              {sizeGuideTypes.map((type) => {
+                const guide = sizeGuides[type]
+                const selected = selectedGuideType === type
+
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setSelectedGuideType(type)}
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${selected ? 'border-foreground bg-foreground text-background' : 'border-border bg-background hover:bg-accent'}`}
+                  >
+                    {guide.label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-4">
+              <SizeGuideTable guide={selectedGuide} />
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">Jika berada di antara dua ukuran, pilih ukuran yang lebih besar.</p>
           </div>
         </div>
       </section>
     </AppShell>
   )
+}
+
+function getSizeGuideType(target: string): SizeGuideType {
+  if (target === 'Women') return 'women'
+  if (target === 'Kids') return 'kids'
+  return 'unisex'
 }

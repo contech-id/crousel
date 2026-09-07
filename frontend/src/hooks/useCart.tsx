@@ -63,7 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount,
       subtotal,
       addToCart: (product, size, color) => {
-        const id = `${product.slug}-${size}-${color}`
+        const id = `${product.id}-${size}-${color}`
         setItems((currentItems) => {
           const existing = currentItems.find((item) => item.id === id)
           if (existing) {
