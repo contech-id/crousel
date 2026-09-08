@@ -13,6 +13,8 @@ tags:
     description: Data profil pengguna yang sedang login
   - name: Products
     description: Katalog produk ecommerce
+  - name: Product Categories
+    description: Kategori produk dan contoh nama produk
   - name: Customers
     description: Data customer yang terdaftar
   - name: Settings
@@ -225,6 +227,95 @@ paths:
               schema: { $ref: '#/components/schemas/ProductResponse' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '422': { $ref: '#/components/responses/ValidationError' }
+  /categories:
+    get:
+      tags: [Product Categories]
+      summary: Ambil semua kategori produk
+      operationId: listProductCategories
+      responses:
+        '200':
+          description: Daftar kategori produk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProductCategory' }
+  /categories/{category}:
+    get:
+      tags: [Product Categories]
+      summary: Ambil detail kategori produk
+      operationId: getProductCategory
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      responses:
+        '200':
+          description: Detail kategori produk
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductCategoryResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /admin/categories:
+    post:
+      tags: [Product Categories]
+      summary: Tambah kategori produk
+      operationId: createProductCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: '#/components/schemas/ProductCategoryCreateRequest' }
+            example:
+              name: wedges
+              example_products: Nerona, Flavia, Joane.
+      responses:
+        '201':
+          description: Kategori produk berhasil dibuat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductCategoryResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/categories/{category}:
+    patch:
+      tags: [Product Categories]
+      summary: Perbarui kategori produk
+      description: Kirim sebagai POST dengan field `_method=PATCH` bila client tidak dapat mengirim file multipart menggunakan metode PATCH.
+      operationId: updateProductCategory
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: '#/components/schemas/ProductCategoryUpdateRequest' }
+      responses:
+        '200':
+          description: Kategori produk berhasil diperbarui
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductCategoryResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Product Categories]
+      summary: Hapus kategori produk
+      operationId: deleteProductCategory
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      responses:
+        '200': { description: Kategori produk berhasil dihapus }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /products/category/{category}:
     get:
       tags: [Products]
@@ -557,6 +648,12 @@ components:
       required: true
       description: ID produk
       schema: { type: integer, format: int64, example: 1 }
+    CategoryId:
+      name: category
+      in: path
+      required: true
+      description: ID kategori produk
+      schema: { type: integer, format: int64, example: 1 }
     UserId:
       name: user
       in: path
@@ -736,6 +833,40 @@ components:
         availability: { type: string, enum: [Tersedia, Pre-order, Habis], example: Tersedia }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+    ProductCategory:
+      type: object
+      required: [id, name, example_products, image, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, example: 1 }
+        name: { type: string, enum: [unisex, kids, women, men, wedges, slop, slides], example: wedges }
+        example_products: { type: string, maxLength: 2000, example: 'Nerona, Flavia, Joane.' }
+        image: { type: string, format: uri, nullable: true, description: URL publik gambar kategori }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ProductCategoryCreateRequest:
+      type: object
+      required: [name, example_products, image]
+      properties:
+        name: { type: string, enum: [unisex, kids, women, men, wedges, slop, slides] }
+        example_products: { type: string, maxLength: 2000 }
+        image: { type: string, format: binary, nullable: true, description: Satu file gambar kategori, maksimal 5 MB }
+    ProductCategoryUpdateRequest:
+      type: object
+      description: Setidaknya satu field harus dikirim.
+      properties:
+        name: { type: string, enum: [unisex, kids, women, men, wedges, slop, slides] }
+        example_products: { type: string, maxLength: 2000 }
+        image: { type: string, format: binary, nullable: true, description: Ganti dengan satu file gambar baru, maksimal 5 MB }
+    ProductCategoryResponse:
+      type: object
+      required: [data]
+      properties:
+        message: { type: string }
+        data:
+          type: object
+          required: [category]
+          properties:
+            category: { $ref: '#/components/schemas/ProductCategory' }
     ProductRequest:
       allOf:
         - $ref: '#/components/schemas/ProductCreateFields'

@@ -18,7 +18,7 @@ class ProductController extends Controller
         $query = Product::query()->latest();
 
         if ($request->filled('category')) {
-            $query->where('category', $request->string('category')->toString());
+            $this->applyCategoryFilter($query, $request->string('category')->toString());
         }
 
         return response()->json(['data' => $query->get()->map(fn (Product $product): array => $this->presentProduct($product, $request))]);
@@ -27,12 +27,28 @@ class ProductController extends Controller
     public function byCategory(Request $request, string $category): JsonResponse
     {
         return response()->json([
-            'data' => Product::query()
-                ->where('category', $category)
+            'data' => $this->applyCategoryFilter(Product::query(), $category)
                 ->latest()
                 ->get()
                 ->map(fn (Product $product): array => $this->presentProduct($product, $request)),
         ]);
+    }
+
+    private function applyCategoryFilter($query, string $category)
+    {
+        $filters = [
+            'slides' => ['field' => 'category', 'value' => 'Slide'],
+            'slide' => ['field' => 'category', 'value' => 'Slide'],
+            'slop' => ['field' => 'category', 'value' => 'Slop'],
+            'wedges' => ['field' => 'category', 'value' => 'Wedges'],
+            'unisex' => ['field' => 'target', 'value' => 'Unisex'],
+            'kids' => ['field' => 'target', 'value' => 'Kids'],
+            'women' => ['field' => 'target', 'value' => 'Women'],
+            'men' => ['field' => 'target', 'value' => 'Men'],
+        ];
+        $filter = $filters[strtolower($category)] ?? ['field' => 'category', 'value' => $category];
+
+        return $query->where($filter['field'], $filter['value']);
     }
 
     public function store(Request $request): JsonResponse

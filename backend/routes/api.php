@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\AdminAuthController;
@@ -15,6 +16,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/category/{category}', [ProductController::class, 'byCategory']);
     Route::get('/products/{product}', [ProductController::class, 'show']);
+    Route::get('/categories', [ProductCategoryController::class, 'index']);
+    Route::get('/categories/{category}', [ProductCategoryController::class, 'show']);
 
     // Store settings are exposed as a cohesive module. Replace with admin auth middleware in production.
     Route::get('/settings', [SettingsController::class, 'index']);
@@ -48,5 +51,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/account', [AdminAuthController::class, 'account']);
         Route::put('/account', [AdminAuthController::class, 'updateAccount']);
         Route::put('/account/password', [AdminAuthController::class, 'updatePassword']);
+        Route::post('/categories', [ProductCategoryController::class, 'store']);
+        Route::patch('/categories/{category}', [ProductCategoryController::class, 'update']);
+        Route::delete('/categories/{category}', [ProductCategoryController::class, 'destroy']);
     });
 });
