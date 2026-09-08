@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 
 import { Button } from '@/components/atoms/ui/button'
+import { formatPrice, priceToNumber } from '@/hooks/useCart'
 import type { Product } from '@/lib/products'
 
 type ProductCardProps = {
@@ -33,7 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
               {product.category}
             </p>
           </div>
-          <p className="shrink-0 text-xs font-semibold sm:text-sm">{product.price}</p>
+          <p className="shrink-0 text-xs font-semibold sm:text-sm">{formatPrice(priceToNumber(product.price))}</p>
         </div>
         <Button
           variant="outline"

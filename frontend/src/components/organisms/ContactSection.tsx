@@ -13,7 +13,7 @@ export function ContactSection() {
   return (
     <section id="contact" className="border-t border-border bg-muted/40 px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
       <div className="mx-auto grid max-w-[90rem] gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl bg-secondary p-8 text-secondary-foreground sm:p-10">
+        <div className="rounded-3xl bg-secondary p-8 text-secondary-foreground sm:p-10" data-aos="fade-right">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-secondary-foreground/60">Pusat bantuan</p>
           <h2 className="mt-4 max-w-md text-3xl tracking-tight">Ada yang ingin ditanyakan?</h2>
           <form className="mt-8 space-y-4">
@@ -25,9 +25,9 @@ export function ContactSection() {
         </div>
 
         <div className="space-y-4">
-          <div><p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Kontak dan toko resmi</p><h2 className="mt-2 text-2xl tracking-tight">Temukan kami di channel favoritmu.</h2></div>
-          {channels.map(({ icon: ChannelIcon, name, detail }) => <a key={name} href="/kontak" className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-muted"><span className="rounded-xl bg-secondary p-3"><ChannelIcon aria-hidden="true" className="size-5" /></span><span><strong className="block text-sm">{name}</strong><span className="text-sm text-muted-foreground">{detail}</span></span></a>)}
-          <div className="flex items-start gap-3 rounded-2xl bg-card p-4 text-sm"><MapPin aria-hidden="true" className="mt-0.5 size-5 shrink-0" /><span><strong className="block">Jam layanan</strong><span className="text-muted-foreground">Senin - Sabtu, 09.00 - 17.00 WIB</span></span></div>
+          <div data-aos="fade-up"><p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Kontak dan toko resmi</p><h2 className="mt-2 text-2xl tracking-tight">Temukan kami di channel favoritmu.</h2></div>
+          {channels.map(({ icon: ChannelIcon, name, detail }, index) => <a key={name} href="/kontak" className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-muted" data-aos="fade-left" data-aos-delay={String(index * 100)}><span className="rounded-xl bg-secondary p-3"><ChannelIcon aria-hidden="true" className="size-5" /></span><span><strong className="block text-sm">{name}</strong><span className="text-sm text-muted-foreground">{detail}</span></span></a>)}
+          <div className="flex items-start gap-3 rounded-2xl bg-card p-4 text-sm" data-aos="fade-left" data-aos-delay="400"><MapPin aria-hidden="true" className="mt-0.5 size-5 shrink-0" /><span><strong className="block">Jam layanan</strong><span className="text-muted-foreground">Senin - Sabtu, 09.00 - 17.00 WIB</span></span></div>
         </div>
       </div>
     </section>

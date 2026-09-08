@@ -27,21 +27,21 @@ export function HomePage() {
 
   return (
     <AppShell>
-      <section id="home" className="overflow-hidden bg-muted/40" data-aos="fade-up" data-aos-duration="800">
+      <section id="home" className="overflow-hidden bg-muted/40">
         <div className="mx-auto grid max-w-[90rem] items-center gap-8 px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8 lg:px-8 lg:pb-24 lg:pt-20">
-          <div className="relative z-10" data-aos="fade-up" data-aos-delay="100">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-secondary/30 px-3.5 py-2 text-[11px] text-foreground" data-aos="fade-up" data-aos-delay="200">
+          <div className="relative z-10">
+            <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-secondary/30 px-3.5 py-2 text-[11px] text-foreground">
               <Sparkles aria-hidden="true" className="size-3.5" /> Dibuat untuk
               aktivitas harianmu
             </p>
-            <h1 className="max-w-xl text-5xl font-black leading-[1.02] tracking-[-0.06em] sm:text-6xl lg:text-[4.5rem]" data-aos="fade-up" data-aos-delay="250">
+            <h1 className="max-w-xl text-5xl font-black leading-[1.02] tracking-[-0.06em] sm:text-6xl lg:text-[4.5rem]">
               Crafted with passion &amp; pride on every inch of sandals.
             </h1>
-            <p className="mt-6 max-w-md text-base leading-7 text-muted-foreground sm:text-lg" data-aos="fade-up" data-aos-delay="350">
+            <p className="mt-6 max-w-md text-base leading-7 text-muted-foreground sm:text-lg">
               Sandal pilihan yang dibuat dengan penuh passion untuk menemani
               setiap cerita dan aktivitasmu.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4" data-aos="fade-up" data-aos-delay="450">
+            <div className="mt-8 flex flex-wrap items-center gap-4">
               <Button
                 variant="secondary"
                 size="lg"
@@ -65,7 +65,7 @@ export function HomePage() {
                 Lihat koleksi
               </a>
             </div>
-            <div className="mt-12 flex items-center gap-7" data-aos="fade-up" data-aos-delay="550">
+            <div className="mt-12 flex items-center gap-7">
               <div className="text-xs leading-5 text-muted-foreground">
                 Dipercaya oleh
                 <br />
@@ -86,16 +86,14 @@ export function HomePage() {
               </div>
             </div>
           </div>
-          <div className="relative mx-auto flex min-h-[390px] w-full max-w-[800px] items-center justify-center sm:min-h-[500px] lg:min-h-[600px]" data-aos="fade-up" data-aos-delay="200" data-aos-duration="900">
+          <div className="relative mx-auto flex min-h-[390px] w-full max-w-[800px] items-center justify-center sm:min-h-[500px] lg:min-h-[600px]">
             <div className="absolute right-4 top-1/2 aspect-square w-[78%] -translate-y-1/2 rounded-full bg-gradient-to-br from-secondary/80 via-secondary/35 to-transparent blur-3xl" />
             <img
               src={heroImage}
               alt="Sandal Crousel dengan desain modern"
               className="relative z-10 w-[94%] max-w-[680px] object-contain drop-shadow-[0_30px_25px_rgba(0,0,0,0.2)]"
-              data-aos="fade-up"
-              data-aos-delay="350"
             />
-            <span className="absolute bottom-[10%] left-[5%] z-20 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-background" data-aos="fade-up" data-aos-delay="500">
+            <span className="absolute bottom-[10%] left-[5%] z-20 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-background">
               Crousel / 01
             </span>
           </div>
@@ -110,7 +108,7 @@ export function HomePage() {
         id="shop"
         className="mx-auto max-w-[90rem] px-4 py-16 sm:px-6 lg:px-8 lg:py-24"
       >
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-4" data-aos="fade-up">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">
               Koleksi Crousel
@@ -119,13 +117,15 @@ export function HomePage() {
               Katalog produk
             </h2>
           </div>
-          <a href="/belanja" className="text-sm font-semibold">
+          <a href="/belanja" className="text-sm font-semibold" data-aos="fade-left" data-aos-delay="100">
             Lihat katalog
           </a>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-5 lg:grid-cols-5">
-          {products.slice(0, 5).map((product) => (
-            <ProductCard key={product.slug} product={product} />
+          {products.slice(0, 10).map((product, index) => (
+            <div key={product.slug} data-aos="fade-up" data-aos-delay={String((index % 5) * 100)}>
+              <ProductCard product={product} />
+            </div>
           ))}
         </div>
       </section>
@@ -136,7 +136,7 @@ export function HomePage() {
       >
         <div className="mx-auto max-w-[90rem]">
           <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-            <div>
+            <div data-aos="fade-right">
               <p className="mb-4 inline-flex rounded-full border border-border bg-background px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">
                 Tentang kami
               </p>
@@ -156,7 +156,7 @@ export function HomePage() {
                 <ArrowRight aria-hidden="true" className="size-4" />
               </a>
             </div>
-            <div className="relative mx-auto w-full max-w-md">
+            <div className="relative mx-auto w-full max-w-md" data-aos="fade-left" data-aos-delay="150">
               <div className="absolute -inset-4 rounded-[2rem] bg-secondary/30 blur-2xl" />
               <div className="relative overflow-hidden">
                 <img
@@ -170,7 +170,7 @@ export function HomePage() {
               </div>
             </div>
           </div>
-          <div className="relative mt-10 overflow-hidden rounded-[2rem] bg-foreground p-7 text-background sm:p-10">
+          <div className="relative mt-10 overflow-hidden rounded-[2rem] bg-foreground p-7 text-background sm:p-10" data-aos="fade-up" data-aos-delay="200">
             <div className="absolute -right-16 -top-24 size-72 rounded-full border-[34px] border-background/10" />
             <p className="relative text-4xl font-black tracking-tight sm:text-6xl">
               10.000+

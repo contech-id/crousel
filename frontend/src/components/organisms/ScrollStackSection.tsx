@@ -44,17 +44,17 @@ export function ScrollStackSection() {
   return (
     <section id="stories" className="overflow-hidden border-t border-border bg-background px-4 py-16 sm:px-6 lg:px-8 lg:py-24" data-scroll-stack data-aos="fade-up">
       <div className="mx-auto max-w-[90rem]">
-        <div className="max-w-2xl">
+        <div className="max-w-2xl" data-aos="fade-up">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Cerita di setiap langkah</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">Scroll untuk mengenal Crousel lebih dekat.</h2>
           <p className="mt-4 text-sm leading-6 text-muted-foreground sm:text-base">Tiga prinsip yang membuat setiap pasangan Crousel terasa nyaman dan mudah menjadi bagian dari harimu.</p>
         </div>
 
         <ScrollStack className="mt-4" itemDistance={70} itemStackDistance={24} baseScale={0.9} scaleEndPosition="8%" stackPosition="18%" useWindowScroll>
-          {stories.map((story) => (
+          {stories.map((story, index) => (
             <ScrollStackItem key={story.eyebrow} itemClassName={`overflow-hidden rounded-[2rem] p-0 shadow-xl ${story.className}`}>
               <div className="grid h-full min-h-0 items-stretch md:grid-cols-[1fr_0.9fr]">
-                <div className="flex flex-col justify-between p-6 sm:p-8">
+                <div className="flex flex-col justify-between p-6 sm:p-8" data-aos="fade-right" data-aos-delay={String(index * 75)}>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] opacity-60">{story.eyebrow}</p>
                   <div className="mt-8">
                     <h3 className="max-w-lg text-2xl font-black tracking-tight sm:text-4xl">{story.title}</h3>
@@ -62,7 +62,7 @@ export function ScrollStackSection() {
                     <a href="/belanja" className="mt-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider">Lihat koleksi <ArrowRight aria-hidden="true" className="size-4" /></a>
                   </div>
                 </div>
-                <div className="min-h-52 overflow-hidden md:min-h-full">
+                <div className="min-h-52 overflow-hidden md:min-h-full" data-aos="fade-left" data-aos-delay={String(index * 75 + 100)}>
                   <img src={story.image} alt="Koleksi sandal Crousel" loading="lazy" className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
                 </div>
               </div>

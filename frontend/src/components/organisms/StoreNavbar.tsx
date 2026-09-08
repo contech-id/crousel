@@ -2,13 +2,14 @@ import { BadgeCheck, Mail, Menu, Phone, Search, ShoppingBag, User, X } from 'luc
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/atoms/ui/button'
+import { ProductSearchDialog } from '@/components/molecules/ProductSearchDialog'
 import { useCart } from '@/hooks/useCart'
 import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
   { label: 'Beranda', href: '/' },
-  { label: 'Belanja', href: '/belanja' },
   { label: 'Kategori', href: '/kategori' },
+  { label: 'Belanja', href: '/belanja' },
   { label: 'Tentang', href: '/tentang' },
   { label: 'Panduan Ukuran', href: '/panduan-ukuran' },
   { label: 'Cara Memesan', href: '/cara-memesan' },
@@ -20,6 +21,8 @@ export function StoreNavbar() {
   const { isAuthenticated } = useAuth()
   const [announcementVisible, setAnnouncementVisible] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [currentPath, setCurrentPath] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/')
   const announcementState = useRef(true)
 
   useEffect(() => {
@@ -37,6 +40,29 @@ export function StoreNavbar() {
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    const updatePath = () => setCurrentPath(window.location.pathname.replace(/\/+$/, '') || '/')
+    window.addEventListener('popstate', updatePath)
+    window.addEventListener('hashchange', updatePath)
+    return () => {
+      window.removeEventListener('popstate', updatePath)
+      window.removeEventListener('hashchange', updatePath)
+    }
+  }, [])
+
+  const isActive = (href: string) => {
+    if (href === '/') return currentPath === '/'
+    const aliases: Record<string, string[]> = {
+      '/belanja': ['/shop'],
+      '/kategori': ['/collection'],
+      '/tentang': ['/about'],
+      '/panduan-ukuran': ['/size-guide'],
+      '/cara-memesan': ['/how-to-order'],
+      '/kontak': ['/contact'],
+    }
+    return currentPath === href || aliases[href]?.includes(currentPath) || (href === '/belanja' && currentPath.startsWith('/produk/'))
+  }
 
   return (
     <header className="sticky top-0 z-50">
@@ -61,15 +87,15 @@ export function StoreNavbar() {
           </a>
 
           <div className="hidden items-center gap-5 lg:flex xl:gap-7">
-            {navLinks.map((link, index) => (
-              <a key={link.label} href={link.href} className={`relative py-7 text-[13px] font-medium transition-colors hover:text-foreground ${index === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+            {navLinks.map((link) => (
+              <a key={link.label} href={link.href} aria-current={isActive(link.href) ? 'page' : undefined} className={`relative border-b-2 py-7 text-[13px] font-medium transition-colors hover:text-foreground ${isActive(link.href) ? 'border-secondary text-foreground' : 'border-transparent text-muted-foreground'}`}>
                 <span className="inline-flex items-center gap-1">{link.label}</span>
               </a>
             ))}
           </div>
 
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Cari produk"><Search aria-hidden="true" className="size-[19px]" /></Button>
+            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Cari produk" aria-haspopup="dialog" aria-expanded={searchOpen} onClick={() => setSearchOpen(true)}><Search aria-hidden="true" className="size-[19px]" /></Button>
             <Button variant="ghost" size="icon" className="hidden rounded-full sm:inline-flex" aria-label={isAuthenticated ? 'Profil saya' : 'Masuk atau daftar'} asChild>
               <a href={isAuthenticated ? '/profil' : '/login'}><User aria-hidden="true" className="size-[19px]" /></a>
             </Button>
@@ -87,11 +113,12 @@ export function StoreNavbar() {
 
         <div className={`border-t border-border/60 bg-background lg:hidden ${mobileOpen ? 'block' : 'hidden'}`}>
           <div className="mx-auto flex max-w-[90rem] flex-col px-4 py-3 sm:px-6">
-            {navLinks.map((link) => <a key={link.label} href={link.href} onClick={() => setMobileOpen(false)} className="border-b border-border/50 py-3 text-sm font-medium text-muted-foreground last:border-0 hover:text-foreground">{link.label}</a>)}
+            {navLinks.map((link) => <a key={link.label} href={link.href} onClick={() => setMobileOpen(false)} aria-current={isActive(link.href) ? 'page' : undefined} className={`border-b border-border/50 py-3 text-sm font-medium last:border-0 hover:text-foreground ${isActive(link.href) ? 'text-foreground' : 'text-muted-foreground'}`}>{link.label}</a>)}
             <a href={isAuthenticated ? '/profil' : '/login'} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 py-3 text-sm font-medium text-muted-foreground sm:hidden"><User aria-hidden="true" className="size-4" /> {isAuthenticated ? 'Profil saya' : 'Masuk atau daftar'}</a>
           </div>
         </div>
       </nav>
+      <ProductSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   )
 }

@@ -50,7 +50,7 @@ export function TestimonialsSection() {
   return (
     <section id="testimonials" className="border-t border-border bg-muted/40 px-4 py-16 sm:px-6 lg:px-8 lg:py-24" data-aos="fade-up">
       <div className="mx-auto max-w-[90rem]">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-5 sm:mb-10">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-5 sm:mb-10" data-aos="fade-up">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Kata mereka</p>
             <h2 className="mt-3 max-w-xl text-3xl font-black tracking-tight sm:text-5xl">Langkah nyaman yang diceritakan kembali.</h2>
@@ -61,7 +61,7 @@ export function TestimonialsSection() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-[2rem] bg-foreground p-6 text-background sm:p-10 lg:p-14" aria-live="polite">
+        <div className="relative overflow-hidden rounded-[2rem] bg-foreground p-6 text-background sm:p-10 lg:p-14" aria-live="polite" data-aos="fade-up" data-aos-delay="150">
           <Quote aria-hidden="true" className="absolute right-7 top-6 size-16 text-background/10 sm:right-12 sm:top-8 sm:size-24" />
           <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="max-w-3xl">
@@ -87,4 +87,3 @@ export function TestimonialsSection() {
     </section>
   )
 }
-

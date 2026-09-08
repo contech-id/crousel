@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { useScrollAnimation } from '@/hooks/useScrollAnimation'
 import { CartProvider } from '@/hooks/useCart'
 import { AuthProvider } from '@/hooks/useAuth'
 import { AboutPage } from '@/pages/AboutPage'
@@ -35,6 +36,7 @@ const localizedRoutes: Record<string, string> = {
 }
 
 function App() {
+  useScrollAnimation()
   const [route, setRoute] = useState(getRoute)
 
   useEffect(() => {

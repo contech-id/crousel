@@ -13,7 +13,7 @@ import { Button } from '@/components/atoms/ui/button'
 import { ProductGallery } from '@/components/molecules/ProductGallery'
 import { SizeGuideTable } from '@/components/molecules/SizeGuideTable'
 import { AppShell } from '@/components/templates/AppShell'
-import { useCart } from '@/hooks/useCart'
+import { formatPrice, priceToNumber, useCart } from '@/hooks/useCart'
 import { useAuth } from '@/hooks/useAuth'
 import { sizeGuideTypes, sizeGuides, type SizeGuideType } from '@/lib/sizeGuide'
 import type { Product } from '@/lib/products'
@@ -129,9 +129,6 @@ function ProductDetail({ product }: ProductDetailProps) {
             <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
               {product.name}
             </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              {product.category}
-            </p>
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-secondary/25 px-3 py-1 text-xs font-semibold text-secondary-foreground">
                 {product.availability}
@@ -140,7 +137,7 @@ function ProductDetail({ product }: ProductDetailProps) {
                 {product.target}
               </span>
             </div>
-            <p className="mt-6 text-2xl font-semibold">{product.price}</p>
+            <p className="mt-6 text-2xl font-semibold">{formatPrice(priceToNumber(product.price))}</p>
             <p className="mt-5 leading-7 text-muted-foreground">
               {product.description}
             </p>

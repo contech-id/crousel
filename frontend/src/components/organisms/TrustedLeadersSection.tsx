@@ -25,11 +25,13 @@ export function TrustedLeadersSection() {
                 alt={portrait.alt}
                 loading="lazy"
                 className={`size-14 rounded-xl object-cover shadow-sm sm:size-16 sm:rounded-2xl lg:size-[4.5rem] ${index % 3 === 0 ? 'translate-y-5' : index % 3 === 1 ? '-translate-y-1' : 'translate-y-8'}`}
+                data-aos="zoom-in"
+                data-aos-delay={String(index * 75)}
               />
             ))}
           </div>
 
-          <div className="relative mx-auto mt-14 max-w-xl text-center sm:mt-16">
+          <div className="relative mx-auto mt-14 max-w-xl text-center sm:mt-16" data-aos="fade-up" data-aos-delay="200">
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Cerita pelanggan</p>
             <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">Dipercaya untuk setiap langkah.</h2>
             <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted-foreground">Temani aktivitasmu dengan sandal yang nyaman, stylish, dan dibuat dengan perhatian pada setiap detail.</p>
