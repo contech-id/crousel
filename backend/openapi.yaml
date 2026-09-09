@@ -161,6 +161,33 @@ paths:
               village: Dago
               postal_code: '40135'
               address: Jl. Contoh No. 10
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileMultipartRequest'
+      responses:
+        '200':
+          description: Profil berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    post:
+      tags: [Profile]
+      summary: Perbarui profil dengan foto profil
+      description: Gunakan multipart/form-data untuk memperbarui field profil dan mengunggah foto profil. Endpoint ini setara dengan PATCH /profile untuk mendukung parser multipart Laravel.
+      operationId: updateProfileWithAvatar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileMultipartRequest'
       responses:
         '200':
           description: Profil berhasil diperbarui
@@ -634,6 +661,83 @@ paths:
         - { name: notification, in: path, required: true, schema: { type: integer } }
       responses:
         '200': { description: Notifikasi diperbarui }
+  /settings/customization:
+    get:
+      tags: [Settings]
+      summary: Ambil kustomisasi tampilan toko
+      description: Mengembalikan warna secondary yang dikonfigurasi admin. Default #fbbc03 jika belum diatur.
+      operationId: getCustomization
+      responses:
+        '200':
+          description: Data kustomisasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      secondary_color: { type: string, example: '#fbbc03' }
+                      hero_image: { type: string, format: uri, nullable: true }
+                      size_guide_image: { type: string, format: uri, nullable: true }
+                      about_image: { type: string, format: uri, nullable: true }
+                      story_images: { type: array, minItems: 5, maxItems: 5, items: { type: string, format: uri, nullable: true } }
+  /admin/customization:
+    put:
+      tags: [Settings]
+      summary: Simpan kustomisasi tampilan toko
+      description: Menyimpan warna secondary untuk diterapkan di frontend. Harus format hex 6 digit (contoh #ff5500).
+      operationId: updateCustomization
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [secondary_color]
+              properties:
+                secondary_color: { type: string, pattern: '^#[0-9a-fA-F]{6}$', example: '#ff5500' }
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomizationUploadRequest'
+      responses:
+        '200':
+          description: Kustomisasi berhasil disimpan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: Kustomisasi berhasil disimpan. }
+                  data:
+                    type: object
+                    properties:
+                      secondary_color: { type: string, example: '#ff5500' }
+                      hero_image: { type: string, format: uri, nullable: true }
+                      size_guide_image: { type: string, format: uri, nullable: true }
+                      about_image: { type: string, format: uri, nullable: true }
+                      story_images: { type: array, minItems: 5, maxItems: 5, items: { type: string, format: uri, nullable: true } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+    post:
+      tags: [Settings]
+      summary: Simpan kustomisasi beserta gambar
+      description: Upload gambar hero, panduan ukuran, tentang kami, dan tepat lima gambar cerita menggunakan multipart/form-data.
+      operationId: uploadCustomizationImages
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: '#/components/schemas/CustomizationUploadRequest' }
+      responses:
+        '200': { description: Kustomisasi berhasil disimpan }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 components:
   securitySchemes:
     bearerAuth:
@@ -676,6 +780,7 @@ components:
         village: { type: string, nullable: true, example: Dago }
         postal_code: { type: string, nullable: true, example: '40135' }
         address: { type: string, nullable: true, example: Jl. Contoh No. 10 }
+        avatar_url: { type: string, format: uri, nullable: true, readOnly: true, description: URL publik foto profil }
         created_at: { type: string, format: date-time, example: '2026-09-05T13:00:00.000000Z' }
         updated_at: { type: string, format: date-time, example: '2026-09-05T13:00:00.000000Z' }
     Customer:
@@ -716,6 +821,33 @@ components:
         village: { type: string, maxLength: 100, nullable: true }
         postal_code: { type: string, maxLength: 10, nullable: true }
         address: { type: string, maxLength: 500, nullable: true }
+    UpdateProfileMultipartRequest:
+      type: object
+      description: Field profil opsional. Gunakan multipart/form-data saat mengunggah foto profil.
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        whatsapp: { type: string, example: '081234567890' }
+        birth_date: { type: string, format: date, nullable: true }
+        gender: { type: string, enum: [male, female, other], nullable: true }
+        province: { type: string, maxLength: 100, nullable: true }
+        regency: { type: string, maxLength: 100, nullable: true }
+        district: { type: string, maxLength: 100, nullable: true }
+        village: { type: string, maxLength: 100, nullable: true }
+        postal_code: { type: string, maxLength: 10, nullable: true }
+        address: { type: string, maxLength: 500, nullable: true }
+        avatar: { type: string, format: binary, description: 'Foto profil JPEG, PNG, WebP, atau GIF maksimal 5 MB' }
+    CustomizationUploadRequest:
+      type: object
+      properties:
+        secondary_color: { type: string, pattern: '^#[0-9a-fA-F]{6}$', example: '#ff5500' }
+        hero_image: { type: string, format: binary, description: 'Gambar hero maksimal 5 MB' }
+        size_guide_image: { type: string, format: binary, description: 'Gambar panduan ukuran maksimal 5 MB' }
+        about_image: { type: string, format: binary, description: 'Gambar tentang kami maksimal 5 MB' }
+        story_images:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items: { type: string, format: binary, description: 'Gambar cerita maksimal 5 MB per file' }
     AuthResponse:
       type: object
       required: [message, data]

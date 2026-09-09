@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import heroImage from "@/assets/hero.png";
 import { Button } from "@/components/atoms/ui/button";
-import { ProductCard } from "@/components/molecules/ProductCard";
+import { ProductCard, ProductSkeleton } from "@/components/molecules/ProductCard";
 import { ContactSection } from "@/components/organisms/ContactSection";
 import { CategorySection } from "@/components/organisms/CategorySection";
 import { OrderStepsSection } from "@/components/organisms/OrderStepsSection";
@@ -14,15 +14,18 @@ import { TrustedLeadersSection } from "@/components/organisms/TrustedLeadersSect
 import { TestimonialsSection } from "@/components/organisms/TestimonialsSection";
 import { AppShell } from "@/components/templates/AppShell";
 import type { Product } from "@/lib/products";
+import type { StoreCustomization } from '@/lib/customization'
 
-export function HomePage() {
+export function HomePage({ customization }: { customization: StoreCustomization }) {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/products`)
       .then((res) => res.json())
       .then((data) => setProducts(data.data || []))
-      .catch((err) => console.error("Gagal memuat produk:", err));
+      .catch((err) => console.error("Gagal memuat produk:", err))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -89,7 +92,7 @@ export function HomePage() {
           <div className="relative mx-auto flex min-h-[390px] w-full max-w-[800px] items-center justify-center sm:min-h-[500px] lg:min-h-[600px]">
             <div className="absolute right-4 top-1/2 aspect-square w-[78%] -translate-y-1/2 rounded-full bg-gradient-to-br from-secondary/80 via-secondary/35 to-transparent blur-3xl" />
             <img
-              src={heroImage}
+              src={customization.hero_image ?? heroImage}
               alt="Sandal Crousel dengan desain modern"
               className="relative z-10 w-[94%] max-w-[680px] object-contain drop-shadow-[0_30px_25px_rgba(0,0,0,0.2)]"
             />
@@ -122,11 +125,17 @@ export function HomePage() {
           </a>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-5 lg:grid-cols-5">
-          {products.slice(0, 10).map((product, index) => (
-            <div key={product.slug} data-aos="fade-up" data-aos-delay={String((index % 5) * 100)}>
-              <ProductCard product={product} />
-            </div>
-          ))}
+          {loading
+            ? Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} data-aos="fade-up" data-aos-delay={String((index % 5) * 100)}>
+                  <ProductSkeleton />
+                </div>
+              ))
+            : products.slice(0, 10).map((product, index) => (
+                <div key={product.slug} data-aos="fade-up" data-aos-delay={String((index % 5) * 100)}>
+                  <ProductCard product={product} />
+                </div>
+              ))}
         </div>
       </section>
 
@@ -160,7 +169,7 @@ export function HomePage() {
               <div className="absolute -inset-4 rounded-[2rem] bg-secondary/30 blur-2xl" />
               <div className="relative overflow-hidden">
                 <img
-                  src={heroImage}
+                  src={customization.about_image ?? heroImage}
                   alt="Produk sandal Crousel"
                   className="h-56 w-full object-contain sm:h-64"
                 />
@@ -194,11 +203,11 @@ export function HomePage() {
         </div>
       </section>
 
-      <SizeGuideSection />
+      <SizeGuideSection imageSrc={customization.size_guide_image ?? undefined} />
 
       <OrderStepsSection />
 
-      <ScrollStackSection />
+      <ScrollStackSection imageSources={customization.story_images} />
 
       <TestimonialsSection />
 

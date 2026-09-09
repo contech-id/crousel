@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ShoppingBag } from 'lucide-react'
 
 import { Button } from '@/components/atoms/ui/button'
-import { CategoryFilter } from '@/components/molecules/CategoryFilter'
-import { ProductCard } from '@/components/molecules/ProductCard'
+import { CategoryFilter, CategoryFilterSkeleton } from '@/components/molecules/CategoryFilter'
+import { ProductCard, ProductSkeleton } from '@/components/molecules/ProductCard'
 import { InnerPageLayout } from '@/components/templates/InnerPageLayout'
 import type { Product } from '@/lib/products'
 
@@ -15,6 +15,7 @@ export function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<string[]>([allCategories])
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory)
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -23,6 +24,7 @@ export function ShopPage() {
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('Gagal memuat kategori')))
       .then((payload: { data?: Array<{ name: string }> }) => setCategories([allCategories, ...(payload.data ?? []).map((category) => category.name)]))
       .catch(() => setError('Kategori belum dapat dimuat.'))
+      .finally(() => setCategoriesLoading(false))
   }, [])
 
   useEffect(() => {
@@ -66,11 +68,15 @@ export function ShopPage() {
     >
       <section className="mx-auto max-w-[90rem] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="mb-8 space-y-5">
-          <CategoryFilter
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-          />
+          {categoriesLoading ? (
+            <CategoryFilterSkeleton />
+          ) : (
+            <CategoryFilter
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+            />
+          )}
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
               Menampilkan {filteredProducts.length} produk
@@ -83,7 +89,11 @@ export function ShopPage() {
           </div>
         </div>
         {loading ? (
-          <p className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">Memuat produk...</p>
+          <div className="grid grid-cols-2 gap-x-5 gap-y-10 lg:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, index) => (
+              <ProductSkeleton key={index} />
+            ))}
+          </div>
         ) : error ? (
           <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 py-12 text-center text-sm text-destructive">{error}</p>
         ) : filteredProducts.length > 0 ? (

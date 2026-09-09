@@ -6,19 +6,20 @@ import { sizeGuideTypes, sizeGuides, type SizeGuideType } from '@/lib/sizeGuide'
 
 type SizeGuideSectionProps = {
   showLink?: boolean
+  imageSrc?: string
 }
 
-export function SizeGuideSection({ showLink = true }: SizeGuideSectionProps) {
+export function SizeGuideSection({ showLink = true, imageSrc }: SizeGuideSectionProps) {
   const [selectedType, setSelectedType] = useState<SizeGuideType>('women')
   const selectedGuide = sizeGuides[selectedType]
 
   return (
     <section id="size-guide" className="scroll-mt-24 border-t border-border bg-card px-4 py-14 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-[90rem] items-start gap-8 lg:grid-cols-[0.8fr_1.2fr]">
-        <div className="overflow-hidden rounded-3xl bg-muted" data-aos="fade-right">
-          <img src={sizeGuideImage} alt="Panduan visual pengukuran sandal Crousel" className="aspect-square h-full w-full object-cover" />
+        <div className="min-w-0 overflow-hidden rounded-3xl bg-muted" data-aos="fade-right">
+          <img src={imageSrc ?? sizeGuideImage} alt="Panduan visual pengukuran sandal Crousel" className="aspect-square h-auto w-full object-contain p-2 sm:p-4" />
         </div>
-        <div data-aos="fade-left" data-aos-delay="150">
+        <div className="min-w-0" data-aos="fade-left" data-aos-delay="150">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Panduan ukuran</p>

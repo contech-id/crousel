@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 
 import { Button } from '@/components/atoms/ui/button'
+import { Skeleton } from '@/components/atoms/ui/skeleton'
 import { formatPrice, priceToNumber } from '@/hooks/useCart'
 import type { Product } from '@/lib/products'
 
@@ -48,5 +49,23 @@ export function ProductCard({ product }: ProductCardProps) {
         </Button>
       </div>
     </article>
+  )
+}
+
+export function ProductSkeleton() {
+  return (
+    <div className="flex h-full flex-col">
+      <Skeleton className="aspect-[1.08] w-full rounded-2xl" />
+      <div className="flex flex-1 flex-col pt-3 sm:pt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <Skeleton className="h-5 w-3/4 sm:h-6" />
+            <Skeleton className="mt-1 h-3 w-1/2 sm:h-4" />
+          </div>
+          <Skeleton className="h-4 w-12 sm:h-5 sm:w-16" />
+        </div>
+        <Skeleton className="mt-3 h-8 w-full rounded-full sm:mt-4 sm:h-9" />
+      </div>
+    </div>
   )
 }

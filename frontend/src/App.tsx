@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 
+import { AppLoadingSkeleton } from '@/components/templates/AppLoadingSkeleton'
+
 import { useScrollAnimation } from '@/hooks/useScrollAnimation'
 import { CartProvider } from '@/hooks/useCart'
 import { AuthProvider } from '@/hooks/useAuth'
+import { defaultCustomization, type StoreCustomization } from '@/lib/customization'
 import { AboutPage } from '@/pages/AboutPage'
 import { CollectionPage } from '@/pages/CollectionPage'
 import { ContactPage } from '@/pages/ContactPage'
@@ -38,6 +41,39 @@ const localizedRoutes: Record<string, string> = {
 function App() {
   useScrollAnimation()
   const [route, setRoute] = useState(getRoute)
+  const [isInitializing, setIsInitializing] = useState(true)
+  const [customization, setCustomization] = useState<StoreCustomization>(defaultCustomization)
+
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL
+    const controller = new AbortController()
+    let active = true
+
+    fetch(`${API_URL}/settings/customization`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error('Gagal memuat tema')
+        return response.json()
+      })
+      .then((payload: { data?: Partial<StoreCustomization> }) => {
+        if (active) {
+          const next = { ...defaultCustomization, ...payload.data, story_images: payload.data?.story_images ?? defaultCustomization.story_images }
+          setCustomization(next)
+          document.documentElement.style.setProperty('--secondary', next.secondary_color)
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setIsInitializing(false)
+      })
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [])
 
   useEffect(() => {
     const handleHashChange = () => setRoute(getRoute())
@@ -64,7 +100,8 @@ function App() {
   let page
 
   if (route.startsWith('produk/')) {
-    page = <ProductDetailPage id={decodeURIComponent(route.slice('produk/'.length))} />
+    const productId = decodeURIComponent(route.slice('produk/'.length))
+    page = <ProductDetailPage key={productId} id={productId} />
   } else {
     switch (route) {
       case 'belanja':
@@ -75,7 +112,7 @@ function App() {
       case 'tentang':
       case 'about': page = <AboutPage />; break
       case 'panduan-ukuran':
-      case 'size-guide': page = <SizeGuidePage />; break
+      case 'size-guide': page = <SizeGuidePage customization={customization} />; break
       case 'cara-memesan':
       case 'how-to-order': page = <HowToOrderPage />; break
       case 'kontak':
@@ -88,8 +125,12 @@ function App() {
       case 'register': page = <RegisterPage />; break
       case 'profil':
       case 'profile': page = <ProfilePage />; break
-      default: page = <HomePage />
+      default: page = <HomePage customization={customization} />
     }
+  }
+
+  if (isInitializing) {
+    return <AppLoadingSkeleton />
   }
 
   return <AuthProvider><CartProvider>{page}</CartProvider></AuthProvider>

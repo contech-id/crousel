@@ -1,5 +1,5 @@
 import { BadgeCheck, Mail, Menu, Phone, Search, ShoppingBag, User, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/atoms/ui/button'
 import { ProductSearchDialog } from '@/components/molecules/ProductSearchDialog'
@@ -24,6 +24,7 @@ export function StoreNavbar() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/')
   const announcementState = useRef(true)
+  const closeSearch = useCallback(() => setSearchOpen(false), [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -118,7 +119,7 @@ export function StoreNavbar() {
           </div>
         </div>
       </nav>
-      <ProductSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ProductSearchDialog key={searchOpen ? 'open' : 'closed'} open={searchOpen} onClose={closeSearch} />
     </header>
   )
 }

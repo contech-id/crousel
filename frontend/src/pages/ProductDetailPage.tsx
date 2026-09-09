@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/atoms/ui/button'
 import { ProductGallery } from '@/components/molecules/ProductGallery'
 import { SizeGuideTable } from '@/components/molecules/SizeGuideTable'
+import { ProductDetailSkeleton } from '@/components/organisms/ProductDetailSkeleton'
 import { AppShell } from '@/components/templates/AppShell'
 import { formatPrice, priceToNumber, useCart } from '@/hooks/useCart'
 import { useAuth } from '@/hooks/useAuth'
@@ -27,21 +28,36 @@ export function ProductDetailPage({ id }: ProductDetailPageProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/products/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        setProduct(data.data?.product || null)
+    const controller = new AbortController()
+    let active = true
+
+    fetch(`${import.meta.env.VITE_API_URL}/products/${id}`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('Gagal memuat produk')
+        return response.json()
       })
-      .catch(err => console.error("Gagal memuat produk:", err))
-      .finally(() => setLoading(false))
+      .then(data => {
+        if (active) setProduct(data.data?.product || null)
+      })
+      .catch((error: unknown) => {
+        if (active && !(error instanceof DOMException && error.name === 'AbortError')) {
+          console.error('Gagal memuat produk:', error)
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+      controller.abort()
+    }
   }, [id])
 
   if (loading) {
     return (
       <AppShell>
-         <section className="mx-auto max-w-[90rem] px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-            <p className="text-muted-foreground">Memuat produk...</p>
-         </section>
+        <ProductDetailSkeleton />
       </AppShell>
     )
   }

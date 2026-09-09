@@ -9,6 +9,7 @@ use App\Models\NotificationSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -88,13 +89,22 @@ class AuthController extends Controller
             'village' => ['sometimes', 'nullable', 'string', 'max:100'],
             'postal_code' => ['sometimes', 'nullable', 'string', 'max:10'],
             'address' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'avatar' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
         ]);
 
-        $request->user()->update($validated);
+        $user = $request->user();
+        unset($validated['avatar']);
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar_path) Storage::disk('public')->delete($user->avatar_path);
+            $validated['avatar_path'] = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        $user->update($validated);
 
         return response()->json([
             'message' => 'Profil berhasil diperbarui.',
-            'data' => ['user' => $request->user()->fresh()],
+            'data' => ['user' => $user->fresh()],
         ]);
     }
 

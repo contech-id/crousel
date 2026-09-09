@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotification;
+use App\Models\Customization;
 use App\Models\NotificationSetting;
 use App\Models\PaymentMethod;
 use App\Models\ShippingMethod;
 use App\Models\StoreSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SettingsController extends Controller
 {
@@ -83,6 +86,71 @@ class SettingsController extends Controller
     {
         $notification->update(['read_at' => now()]);
         return response()->json(['message' => 'Notifikasi ditandai telah dibaca.', 'data' => ['notification' => $notification->fresh()]]);
+    }
+
+    public function customization(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->customizationPayload($request)]);
+    }
+
+    public function updateCustomization(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'secondary_color' => ['sometimes', 'required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'hero_image' => ['sometimes', 'file', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
+            'size_guide_image' => ['sometimes', 'file', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
+            'about_image' => ['sometimes', 'file', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
+            'story_images' => ['sometimes', 'array', 'size:5'],
+            'story_images.*' => ['required', 'file', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
+        ]);
+
+        if (isset($data['secondary_color'])) {
+            Customization::updateOrCreate(['key' => 'secondary_color'], ['value' => $data['secondary_color']]);
+        }
+
+        foreach (['hero_image', 'size_guide_image', 'about_image'] as $key) {
+            if ($request->hasFile($key)) {
+                $this->replaceCustomizationImage($key, $request->file($key)->store('customizations', 'public'));
+            }
+        }
+
+        if ($request->hasFile('story_images')) {
+            foreach ($request->file('story_images') as $index => $image) {
+                $this->replaceCustomizationImage('story_image_'.($index + 1), $image->store('customizations/stories', 'public'));
+            }
+        }
+
+        return response()->json([
+            'message' => 'Kustomisasi berhasil disimpan.',
+            'data' => $this->customizationPayload($request),
+        ]);
+    }
+
+    private function replaceCustomizationImage(string $key, string $path): void
+    {
+        $current = Customization::where('key', $key)->value('value');
+        if (is_string($current) && Str::startsWith($current, 'customizations/')) {
+            Storage::disk('public')->delete($current);
+        }
+        Customization::updateOrCreate(['key' => $key], ['value' => $path]);
+    }
+
+    private function customizationPayload(Request $request): array
+    {
+        $values = Customization::query()->pluck('value', 'key');
+        $imageUrl = static function (?string $path) use ($request): ?string {
+            if (! $path) return null;
+            if (Str::startsWith($path, ['http://', 'https://', '/'])) return $path;
+            return rtrim($request->getSchemeAndHttpHost(), '/').'/storage/'.ltrim($path, '/');
+        };
+
+        return [
+            'secondary_color' => $values->get('secondary_color', '#fbbc03'),
+            'hero_image' => $imageUrl($values->get('hero_image')),
+            'size_guide_image' => $imageUrl($values->get('size_guide_image')),
+            'about_image' => $imageUrl($values->get('about_image')),
+            'story_images' => collect(range(1, 5))->map(fn (int $index): ?string => $imageUrl($values->get('story_image_'.$index)))->all(),
+        ];
     }
 
     private function ensureDefaults(): void

@@ -7,40 +7,40 @@ const stories = [
     eyebrow: '01 / Material',
     title: 'Dibuat untuk langkah yang panjang.',
     description: 'Material pilihan dan bantalan yang nyaman menemani rutinitasmu dari pagi hingga sore.',
-    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=1400&q=85',
+    image: '/images/satu.jpg',
     className: 'bg-secondary text-secondary-foreground',
   },
   {
     eyebrow: '02 / Detail',
     title: 'Detail kecil, rasa nyaman yang besar.',
     description: 'Setiap siluet dirancang agar mudah dipadukan dan tetap terasa ringan di setiap suasana.',
-    image: 'https://images.unsplash.com/photo-1562273138-f46be4ebdf33?auto=format&fit=crop&w=1400&q=85',
+    image: '/images/dua.jpg',
     className: 'bg-foreground text-background',
   },
   {
     eyebrow: '03 / Everyday',
     title: 'Satu pasangan untuk banyak cerita.',
     description: 'Dari perjalanan singkat hingga hangout sore, Crousel siap bergerak bersamamu.',
-    image: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=1400&q=85',
+    image: '/images/tiga.jpg',
     className: 'bg-muted text-foreground',
   },
   {
     eyebrow: '04 / Comfort',
     title: 'Nyaman mengikuti ritmemu.',
     description: 'Sol yang fleksibel memberi pijakan mantap tanpa terasa berat saat aktivitas semakin padat.',
-    image: 'https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?auto=format&fit=crop&w=1400&q=85',
+    image: '/images/empat.jpg',
     className: 'bg-card text-foreground',
   },
   {
     eyebrow: '05 / Crousel',
     title: 'Temukan langkah versimu.',
     description: 'Pilih warna dan model favorit, lalu biarkan Crousel menjadi bagian dari cerita sehari-harimu.',
-    image: 'https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?auto=format&fit=crop&w=1400&q=85',
+    image: '/images/lima.jpg',
     className: 'bg-secondary text-secondary-foreground',
   },
 ]
 
-export function ScrollStackSection() {
+export function ScrollStackSection({ imageSources }: { imageSources?: readonly (string | null)[] }) {
   return (
     <section id="stories" className="overflow-hidden border-t border-border bg-background px-4 py-16 sm:px-6 lg:px-8 lg:py-24" data-scroll-stack data-aos="fade-up">
       <div className="mx-auto max-w-[90rem]">
@@ -54,7 +54,7 @@ export function ScrollStackSection() {
           {stories.map((story, index) => (
             <ScrollStackItem key={story.eyebrow} itemClassName={`overflow-hidden rounded-[2rem] p-0 shadow-xl ${story.className}`}>
               <div className="grid h-full min-h-0 items-stretch md:grid-cols-[1fr_0.9fr]">
-                <div className="flex flex-col justify-between p-6 sm:p-8" data-aos="fade-right" data-aos-delay={String(index * 75)}>
+                <div className="hidden flex-col justify-between p-6 sm:p-8 md:flex" data-aos="fade-right" data-aos-delay={String(index * 75)}>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] opacity-60">{story.eyebrow}</p>
                   <div className="mt-8">
                     <h3 className="max-w-lg text-2xl font-black tracking-tight sm:text-4xl">{story.title}</h3>
@@ -62,8 +62,8 @@ export function ScrollStackSection() {
                     <a href="/belanja" className="mt-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider">Lihat koleksi <ArrowRight aria-hidden="true" className="size-4" /></a>
                   </div>
                 </div>
-                <div className="min-h-52 overflow-hidden md:min-h-full" data-aos="fade-left" data-aos-delay={String(index * 75 + 100)}>
-                  <img src={story.image} alt="Koleksi sandal Crousel" loading="lazy" className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
+                <div className="h-full min-h-0 overflow-hidden bg-black/5" data-aos="fade-left" data-aos-delay={String(index * 75 + 100)}>
+                  <img src={imageSources?.[index] ?? story.image} alt="Koleksi sandal Crousel" loading="lazy" className="h-full w-full object-cover object-bottom transition-transform duration-700 hover:scale-105 md:object-contain md:object-bottom" />
                 </div>
               </div>
             </ScrollStackItem>

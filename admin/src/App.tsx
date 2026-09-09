@@ -18,6 +18,7 @@ type PaymentMethod = { id: number; code: string; name: string; type: string; is_
 type NotificationSettings = { new_customer: boolean; new_order: boolean }
 type AdminNotification = { id: number; type: string; title: string; message: string; read_at?: string | null; created_at: string }
 type AdminAccount = { id: number; name: string; username: string; phone?: string | null; email: string; role: string; is_active: boolean }
+type CustomizationData = { secondary_color: string; hero_image: string | null; size_guide_image: string | null; about_image: string | null; story_images: Array<string | null> }
 
 const API_BASE = import.meta.env.VITE_API_URL
 const emptyProduct: ProductForm = { slug: '', name: '', category: 'Slide', target: 'Women', color: '', availableColors: [], images: [], existingImages: [], deletedImages: [], description: '', price: '', features: [], availableSizes: [], availability: 'Tersedia' }
@@ -107,21 +108,106 @@ function CustomersPage() {
   return <><div className="page-heading"><div><p className="eyebrow">Customer directory</p><h1>Users / Customer</h1><p className="muted">Lihat customer yang terdaftar melalui API Crousel.</p></div><span className="count-badge">{customers.length} customer</span></div><section className="panel table-panel"><div className="table-toolbar"><div className="search-field"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama atau WhatsApp..." /></div></div>{error && <div className="api-error">{error} <small>Endpoint customer membutuhkan akses API Bearer.</small></div>}{loading ? <Loading /> : filtered.length ? <div className="table-scroll"><table><thead><tr><th>Customer</th><th>WhatsApp</th><th>Provinsi</th><th>Terdaftar</th><th>Status</th></tr></thead><tbody>{filtered.map((customer) => <tr key={customer.id}><td><div className="customer-cell"><span className="customer-avatar">{customer.name.charAt(0).toUpperCase()}</span><strong>{customer.name}</strong></div></td><td>{customer.whatsapp}</td><td>{customer.province ?? '—'}</td><td>{new Date(customer.created_at).toLocaleDateString('id-ID')}</td><td><span className="availability available">Aktif</span></td></tr>)}</tbody></table></div> : <EmptyState message="Belum ada customer yang tersimpan." />}</section></>
 }
 
-type SettingsTab = 'profile' | 'shipping' | 'payments' | 'notifications' | 'account'
+type SettingsTab = 'profile' | 'shipping' | 'payments' | 'notifications' | 'account' | 'customization'
 
 function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('profile'); const [profile, setProfile] = useState<StoreProfile | null>(null); const [shipping, setShipping] = useState<ShippingMethod[]>([]); const [payments, setPayments] = useState<PaymentMethod[]>([]); const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ new_customer: true, new_order: true }); const [loading, setLoading] = useState(true); const [message, setMessage] = useState('')
   const [accountState, setAccountState] = useState<AdminAccount>({ id: 0, name: '', username: '', phone: '', email: '', role: 'admin', is_active: true })
   useEffect(() => { void Promise.all([apiRequest<{ data: { profile: StoreProfile; shipping: ShippingMethod[]; payments: PaymentMethod[]; notifications: NotificationSettings } }>('/settings'), apiRequest<{ data: { admin: AdminAccount } }>('/admin/account')]).then(([settings, account]) => { setProfile(settings.data.profile); setShipping(settings.data.shipping); setPayments(settings.data.payments); setNotificationSettings(settings.data.notifications); setAccountState(account.data.admin) }).catch((error) => setMessage(error instanceof Error ? error.message : 'Pengaturan gagal dimuat.')).finally(() => setLoading(false)) }, [])
   if (loading || !profile) return <Loading />
-  return <><div className="page-heading"><div><p className="eyebrow">Store configuration</p><h1>Pengaturan</h1><p className="muted">Atur identitas toko, layanan checkout, notifikasi, dan akun admin.</p></div></div>{message && <div className="api-success">{message}</div>}<SettingsLayout activeTab={tab} onTabChange={setTab} profile={profile}>{tab === 'profile' && <ProfileContent profile={profile} onSaved={(next) => setProfile(next)} onMessage={setMessage} />}{tab === 'shipping' && <SettingsList title="Pengiriman RajaOngkir" description="Aktifkan jasa kirim yang tersedia dari konfigurasi RajaOngkir toko." items={shipping} onToggle={async (item) => { const result = await apiRequest<{ data: { shipping: ShippingMethod } }>(`/settings/shipping/${item.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !item.is_active }) }); setShipping((items) => items.map((current) => current.id === item.id ? result.data.shipping : current)) }} />}{tab === 'payments' && <SettingsList title="Metode pembayaran Midtrans" description="Aktifkan kanal pembayaran yang tersedia di checkout." items={payments} onToggle={async (item) => { const result = await apiRequest<{ data: { payment: PaymentMethod } }>(`/settings/payments/${item.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !item.is_active }) }); setPayments((items) => items.map((current) => current.id === item.id ? result.data.payment : current)) }} />}{tab === 'notifications' && <NotificationContent settings={notificationSettings} onChange={setNotificationSettings} onMessage={setMessage} />}{tab === 'account' && <AccountContent account={accountState} onAccountChange={setAccountState} onMessage={setMessage} />}</SettingsLayout></>
+  return <><div className="page-heading"><div><p className="eyebrow">Store configuration</p><h1>Pengaturan</h1><p className="muted">Atur identitas toko, layanan checkout, notifikasi, dan akun admin.</p></div></div>{message && <div className="api-success">{message}</div>}<SettingsLayout activeTab={tab} onTabChange={setTab} profile={profile}>{tab === 'profile' && <ProfileContent profile={profile} onSaved={(next) => setProfile(next)} onMessage={setMessage} />}{tab === 'shipping' && <SettingsList title="Pengiriman RajaOngkir" description="Aktifkan jasa kirim yang tersedia dari konfigurasi RajaOngkir toko." items={shipping} onToggle={async (item) => { const result = await apiRequest<{ data: { shipping: ShippingMethod } }>(`/settings/shipping/${item.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !item.is_active }) }); setShipping((items) => items.map((current) => current.id === item.id ? result.data.shipping : current)) }} />}{tab === 'payments' && <SettingsList title="Metode pembayaran Midtrans" description="Aktifkan kanal pembayaran yang tersedia di checkout." items={payments} onToggle={async (item) => { const result = await apiRequest<{ data: { payment: PaymentMethod } }>(`/settings/payments/${item.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !item.is_active }) }); setPayments((items) => items.map((current) => current.id === item.id ? result.data.payment : current)) }} />}{tab === 'notifications' && <NotificationContent settings={notificationSettings} onChange={setNotificationSettings} onMessage={setMessage} />}{tab === 'account' && <AccountContent account={accountState} onAccountChange={setAccountState} onMessage={setMessage} />}{tab === 'customization' && <CustomizationContent onMessage={setMessage} />}</SettingsLayout></>
 }
 
-function SettingsLayout({ activeTab, onTabChange, profile, children }: { activeTab: SettingsTab; onTabChange: (tab: SettingsTab) => void; profile: StoreProfile; children: React.ReactNode }) { const tabs: Array<[SettingsTab, string]> = [['profile', 'Profil toko'], ['shipping', 'Pengiriman'], ['payments', 'Pembayaran'], ['notifications', 'Notifikasi'], ['account', 'Akun admin']]; return <><nav className="settings-pill-nav">{tabs.map(([key, label]) => <button key={key} className={activeTab === key ? 'active' : ''} onClick={() => onTabChange(key)}>{label}</button>)}</nav><div className="settings-content-grid"><section className="panel settings-main-panel">{children}</section><aside className="panel store-summary"><h2>Ringkasan toko</h2><SummaryItem label="Toko" value={profile.store_name || 'Belum diatur'} /><SummaryItem label="Lokasi" value={[profile.regency, profile.province].filter(Boolean).join(', ') || 'Belum diatur'} /><SummaryItem label="WhatsApp" value={profile.whatsapp || 'Belum diatur'} /><SummaryItem label="Zona waktu" value="WIB (GMT+7)" /></aside></div></> }
+function SettingsLayout({ activeTab, onTabChange, profile, children }: { activeTab: SettingsTab; onTabChange: (tab: SettingsTab) => void; profile: StoreProfile; children: React.ReactNode }) { const tabs: Array<[SettingsTab, string]> = [['profile', 'Profil toko'], ['shipping', 'Pengiriman'], ['payments', 'Pembayaran'], ['notifications', 'Notifikasi'], ['account', 'Akun admin'], ['customization', 'Kustomisasi']]; return <><nav className="settings-pill-nav">{tabs.map(([key, label]) => <button key={key} className={activeTab === key ? 'active' : ''} onClick={() => onTabChange(key)}>{label}</button>)}</nav><div className="settings-content-grid"><section className="panel settings-main-panel">{children}</section><aside className="panel store-summary"><h2>Ringkasan toko</h2><SummaryItem label="Toko" value={profile.store_name || 'Belum diatur'} /><SummaryItem label="Lokasi" value={[profile.regency, profile.province].filter(Boolean).join(', ') || 'Belum diatur'} /><SummaryItem label="WhatsApp" value={profile.whatsapp || 'Belum diatur'} /><SummaryItem label="Zona waktu" value="WIB (GMT+7)" /></aside></div></> }
 function SummaryItem({ label, value }: { label: string; value: string }) { return <div className="summary-item"><small>{label}</small><strong>{value}</strong></div> }
 function ProfileContent({ profile, onSaved, onMessage }: { profile: StoreProfile; onSaved: (profile: StoreProfile) => void; onMessage: (message: string) => void }) { const [form, setForm] = useState(profile); const update = (key: keyof StoreProfile, value: string) => setForm((current) => ({ ...current, [key]: value })); const save = async (event: FormEvent) => { event.preventDefault(); try { const result = await apiRequest<{ data: { profile: StoreProfile } }>('/settings/profile', { method: 'PUT', body: JSON.stringify(form) }); onSaved(result.data.profile); onMessage('Profil toko berhasil disimpan.') } catch (error) { onMessage(error instanceof Error ? error.message : 'Profil gagal disimpan.') } }; return <form className="product-form settings-form" onSubmit={(event) => void save(event)}><h2>Profil toko</h2><div className="form-grid"><Field label="Nama toko" value={form.store_name} onChange={(value) => update('store_name', value)} required /><Field label="Email toko" value={form.store_email} onChange={(value) => update('store_email', value)} required /><Field label="Nomor WhatsApp" value={form.whatsapp} onChange={(value) => update('whatsapp', value)} required /><Field label="Kode pos" value={form.postal_code} onChange={(value) => update('postal_code', value)} required /><Field label="Provinsi" value={form.province} onChange={(value) => update('province', value)} required /><Field label="Kota/Kabupaten" value={form.regency} onChange={(value) => update('regency', value)} required /><Field label="Kecamatan" value={form.district} onChange={(value) => update('district', value)} required /><Field label="Kelurahan/Desa" value={form.village} onChange={(value) => update('village', value)} required /></div><label>Alamat lengkap<textarea required rows={3} value={form.address} onChange={(event) => update('address', event.target.value)} /></label><Field label="Patokan lokasi (opsional)" value={form.location_landmark ?? ''} onChange={(value) => update('location_landmark', value)} /><button className="primary-button" type="submit">Simpan profil</button></form> }
 function NotificationContent({ settings, onChange, onMessage }: { settings: NotificationSettings; onChange: (settings: NotificationSettings) => void; onMessage: (message: string) => void }) { const save = async () => { await apiRequest('/settings/notifications', { method: 'PUT', body: JSON.stringify(settings) }); onMessage('Preferensi notifikasi berhasil disimpan.') }; return <div className="notification-settings settings-form"><h2>Notifikasi lonceng</h2><p className="muted">Atur aktivitas yang tampil pada lonceng admin.</p><ToggleRow label="Pelanggan baru" description="Tampil saat pelanggan menyelesaikan pendaftaran" active={settings.new_customer} onToggle={() => onChange({ ...settings, new_customer: !settings.new_customer })} /><ToggleRow label="Pesanan baru" description="Tampil saat pelanggan membuat pesanan" active={settings.new_order} onToggle={() => onChange({ ...settings, new_order: !settings.new_order })} /><button className="primary-button" onClick={() => void save()}>Simpan preferensi</button></div> }
 function AccountContent({ account, onAccountChange, onMessage }: { account: AdminAccount; onAccountChange: (account: AdminAccount) => void; onMessage: (message: string) => void }) { const [password, setPassword] = useState(''); const save = async (event: FormEvent) => { event.preventDefault(); try { const result = await apiRequest<{ data: { admin: AdminAccount } }>('/admin/account', { method: 'PUT', body: JSON.stringify(account) }); onAccountChange(result.data.admin); onMessage('Detail akun berhasil disimpan.') } catch (error) { onMessage(error instanceof Error ? error.message : 'Akun gagal disimpan.') } }; const changePassword = async (event: FormEvent) => { event.preventDefault(); if (!password.trim()) { onMessage('Password tidak diubah.'); return } try { await apiRequest('/admin/account/password', { method: 'PUT', body: JSON.stringify({ password }) }); setPassword(''); onMessage('Password berhasil diubah.') } catch (error) { onMessage(error instanceof Error ? error.message : 'Password gagal diubah.') } }; return <div className="settings-form"><h2>Akun admin</h2><p className="muted">Kelola identitas dan keamanan akun administrator.</p><form className="product-form" onSubmit={(event) => void save(event)}><div className="form-grid"><Field label="Nama" value={account.name} onChange={(value) => onAccountChange({ ...account, name: value })} required /><Field label="Username" value={account.username} onChange={(value) => onAccountChange({ ...account, username: value })} required /><Field label="Nomor telepon" value={account.phone ?? ''} onChange={(value) => onAccountChange({ ...account, phone: value })} /><Field label="Email" value={account.email} onChange={(value) => onAccountChange({ ...account, email: value })} required /></div><button className="primary-button" type="submit">Simpan akun</button></form><form className="product-form password-form" onSubmit={(event) => void changePassword(event)}><h3>Password</h3><p className="muted">Kosongkan jika tidak ingin mengubah password.</p><Field label="Ubah password" value={password} onChange={setPassword} /><button className="outline-button" type="submit">Simpan password</button></form></div> }
+function CustomizationContent({ onMessage }: { onMessage: (message: string) => void }) {
+  const [color, setColor] = useState('#fbbc03')
+  const [loading, setLoading] = useState(true)
+  const [images, setImages] = useState<CustomizationData>({ secondary_color: '#fbbc03', hero_image: null, size_guide_image: null, about_image: null, story_images: [null, null, null, null, null] })
+  const [selectedImages, setSelectedImages] = useState<Record<string, File | null>>({})
+  const [previews, setPreviews] = useState<Record<string, string>>({})
+  const [storyFiles, setStoryFiles] = useState<Array<File | null>>([null, null, null, null, null])
+  const [storyPreviews, setStoryPreviews] = useState<string[]>([])
+  const DEFAULT_COLOR = '#fbbc03'
+
+  useEffect(() => {
+    void apiRequest<{ data: CustomizationData }>('/settings/customization')
+      .then((result) => { setColor(result.data.secondary_color); setImages(result.data) })
+      .catch(() => undefined)
+      .finally(() => setLoading(false))
+  }, [])
+
+  const save = async () => {
+    try {
+      const body = new FormData()
+      body.append('secondary_color', color)
+      Object.entries(selectedImages).forEach(([key, file]) => { if (file) body.append(key, file) })
+      if (storyFiles.every(Boolean)) storyFiles.forEach((file) => { if (file) body.append('story_images[]', file) })
+      const result = await apiRequest<{ data: CustomizationData }>('/admin/customization', { method: 'POST', body })
+      setImages(result.data); setSelectedImages({}); setStoryFiles([null, null, null, null, null]); setPreviews({}); setStoryPreviews([])
+      onMessage('Kustomisasi berhasil disimpan.')
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : 'Kustomisasi gagal disimpan.')
+    }
+  }
+
+  const reset = () => setColor(DEFAULT_COLOR)
+  const selectImage = (key: string, file: File | undefined) => { if (!file) return; setSelectedImages((current) => ({ ...current, [key]: file })); setPreviews((current) => ({ ...current, [key]: URL.createObjectURL(file) })) }
+  const selectStoryImages = (files: FileList | null) => { const next = Array.from(files ?? []).slice(0, 5); if (!next.length) return; setStoryFiles(next.length === 5 ? next : [...next, ...Array(5 - next.length).fill(null)]); setStoryPreviews(next.map((file) => URL.createObjectURL(file))) }
+  const displayImage = (key: keyof Pick<CustomizationData, 'hero_image' | 'size_guide_image' | 'about_image'>) => previews[key] ?? images[key]
+
+  if (loading) return <Loading />
+
+  return (
+    <div className="notification-settings settings-form">
+      <p className="eyebrow">Appearance</p>
+      <h2>Kustomisasi tampilan</h2>
+      <p className="muted">Atur warna aksen (secondary) yang ditampilkan di halaman toko pelanggan.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
+            <small style={{ fontWeight: 600, fontSize: '0.8rem', opacity: 0.7 }}>Pilih warna</small>
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              style={{ width: '100%', height: '48px', border: '1px solid var(--border, #e5e5e5)', borderRadius: '0.5rem', cursor: 'pointer', padding: '4px' }}
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '140px' }}>
+            <small style={{ fontWeight: 600, fontSize: '0.8rem', opacity: 0.7 }}>Kode hex</small>
+            <input
+              type="text"
+              value={color}
+              onChange={(e) => { const v = e.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setColor(v) }}
+              maxLength={7}
+              placeholder="#fbbc03"
+              style={{ height: '48px', border: '1px solid var(--border, #e5e5e5)', borderRadius: '0.5rem', padding: '0 0.75rem', fontFamily: 'monospace', fontSize: '1rem', textAlign: 'center' }}
+            />
+          </label>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--surface, #fafafa)', borderRadius: '0.75rem', border: '1px solid var(--border, #e5e5e5)' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: color, border: '3px solid rgba(0,0,0,0.08)', flexShrink: 0, transition: 'background 0.2s' }} />
+          <div>
+            <strong style={{ fontSize: '0.9rem' }}>Preview warna</strong>
+            <p style={{ fontSize: '0.8rem', opacity: 0.6, margin: '0.15rem 0 0' }}>Warna ini akan menjadi aksen utama di halaman toko pelanggan.</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button className="primary-button" onClick={() => void save()} disabled={!/^#[0-9a-fA-F]{6}$/.test(color)}>Simpan kustomisasi</button>
+          <button className="outline-button" type="button" onClick={reset}>Reset ke default</button>
+        </div>
+        <div className="customization-image-grid">
+          {([['hero_image', 'Gambar hero'], ['size_guide_image', 'Gambar panduan ukuran'], ['about_image', 'Gambar tentang kami']] as const).map(([key, label]) => <label className="customization-upload" key={key}>{label}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => selectImage(key, event.target.files?.[0])} /><small>JPG, PNG, WebP, GIF · maksimal 5 MB</small>{displayImage(key) && <img src={displayImage(key) ?? undefined} alt={`Preview ${label}`} />}</label>)}
+          <label className="customization-upload customization-upload-wide">Lima gambar cerita di setiap langkah<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={(event) => selectStoryImages(event.target.files)} /><small>Pilih tepat 5 gambar · maksimal 5 MB per file</small><div className="customization-story-previews">{(storyPreviews.length ? storyPreviews : images.story_images).map((src, index) => src && <img key={`${src}-${index}`} src={src} alt={`Preview cerita ${index + 1}`} />)}</div></label>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function AccountPage() { return <section className="settings-layout account-layout"><div className="settings-tabs"><button onClick={() => { window.location.hash = 'settings' }}>Profil toko</button><button onClick={() => { window.location.hash = 'settings' }}>Pengiriman</button><button onClick={() => { window.location.hash = 'settings' }}>Pembayaran</button><button onClick={() => { window.location.hash = 'settings' }}>Notifikasi</button><button className="active">Akun admin <span aria-hidden="true">›</span></button></div><AccountFormPage /></section> }
 

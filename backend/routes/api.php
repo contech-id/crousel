@@ -18,6 +18,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/products/{product}', [ProductController::class, 'show']);
     Route::get('/categories', [ProductCategoryController::class, 'index']);
     Route::get('/categories/{category}', [ProductCategoryController::class, 'show']);
+    Route::get('/settings/customization', [SettingsController::class, 'customization']);
 
     // Store settings are exposed as a cohesive module. Replace with admin auth middleware in production.
     Route::get('/settings', [SettingsController::class, 'index']);
@@ -37,6 +38,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/profile', [AuthController::class, 'profile']);
         Route::patch('/profile', [AuthController::class, 'updateProfile']);
+        Route::post('/profile', [AuthController::class, 'updateProfile']);
         Route::post('/products', [ProductController::class, 'store']);
         Route::patch('/products/{product}', [ProductController::class, 'update']);
         Route::delete('/products/{product}', [ProductController::class, 'destroy']);
@@ -54,5 +56,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/categories', [ProductCategoryController::class, 'store']);
         Route::patch('/categories/{category}', [ProductCategoryController::class, 'update']);
         Route::delete('/categories/{category}', [ProductCategoryController::class, 'destroy']);
+        Route::put('/customization', [SettingsController::class, 'updateCustomization']);
+        Route::post('/customization', [SettingsController::class, 'updateCustomization']);
     });
 });

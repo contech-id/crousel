@@ -17,9 +17,9 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const redirect = new URLSearchParams(window.location.search).get('redirect') || '/profil'
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!login(phone.trim(), password)) {
+    if (!await login(phone.trim(), password)) {
       setError('Nomor WhatsApp atau password belum sesuai.')
       return
     }

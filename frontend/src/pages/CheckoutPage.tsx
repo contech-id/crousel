@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/atoms/ui/button'
 import { AppShell } from '@/components/templates/AppShell'
 import { formatPrice, priceToNumber, useCart } from '@/hooks/useCart'
+import { useAuth } from '@/hooks/useAuth'
 
 type Location = {
   province: string
@@ -35,6 +36,13 @@ const locations: Location[] = [
       { name: 'Malang', districts: [{ name: 'Klojen', villages: ['Oro-Oro Dowo', 'Rampal Celaket'] }] },
     ],
   },
+  {
+    province: 'Bali',
+    cities: [
+      { name: 'Denpasar', districts: [{ name: 'Denpasar Selatan', villages: ['Sanur'] }] },
+      { name: 'Badung', districts: [{ name: 'Kuta', villages: ['Legian'] }] },
+    ],
+  },
 ]
 
 const shippingMethods = [
@@ -57,10 +65,15 @@ const demoOrderNumber = 'CRS-240905'
 
 export function CheckoutPage() {
   const { items, subtotal } = useCart()
-  const [province, setProvince] = useState('')
-  const [city, setCity] = useState('')
-  const [district, setDistrict] = useState('')
-  const [village, setVillage] = useState('')
+  const { user } = useAuth()
+  const [recipientName, setRecipientName] = useState(() => user?.fullName ?? '')
+  const [recipientWhatsapp, setRecipientWhatsapp] = useState(() => user?.phone ?? '')
+  const [postalCode, setPostalCode] = useState(() => user?.postalCode ?? '')
+  const [address, setAddress] = useState(() => user?.address ?? '')
+  const [province, setProvince] = useState(() => user?.province ?? '')
+  const [city, setCity] = useState(() => user?.city ?? '')
+  const [district, setDistrict] = useState(() => user?.district ?? '')
+  const [village, setVillage] = useState(() => user?.village ?? '')
   const [shippingId, setShippingId] = useState(shippingMethods[0].id)
   const [paymentId, setPaymentId] = useState(paymentMethods[0].id)
   const [voucher, setVoucher] = useState('')
@@ -156,14 +169,14 @@ export function CheckoutPage() {
                   <div><h2 className="font-bold">Alamat pengiriman</h2><p className="text-xs text-muted-foreground">Pastikan detail alamatmu sudah benar.</p></div>
                 </div>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <label className="text-sm font-medium">Nama lengkap<input required name="name" className={`${inputClassName} mt-2`} placeholder="Nama penerima" /></label>
-                  <label className="text-sm font-medium">Nomor WhatsApp<input required name="whatsapp" type="tel" className={`${inputClassName} mt-2`} placeholder="+62 812 3456 7890" /></label>
+                  <label className="text-sm font-medium">Nama lengkap<input required name="name" value={recipientName} onChange={(event) => setRecipientName(event.target.value)} className={`${inputClassName} mt-2`} placeholder="Nama penerima" /></label>
+                  <label className="text-sm font-medium">Nomor WhatsApp<input required name="whatsapp" type="tel" value={recipientWhatsapp} onChange={(event) => setRecipientWhatsapp(event.target.value)} className={`${inputClassName} mt-2`} placeholder="+62 812 3456 7890" /></label>
                   <SelectField label="Provinsi" value={province} onChange={handleProvinceChange} options={locations.map((item) => item.province)} />
                   <SelectField label="Kota/Kabupaten" value={city} onChange={handleCityChange} options={selectedProvince?.cities.map((item) => item.name) ?? []} disabled={!province} />
                   <SelectField label="Kecamatan" value={district} onChange={handleDistrictChange} options={selectedCity?.districts.map((item) => item.name) ?? []} disabled={!city} />
                   <SelectField label="Desa/Kelurahan" value={village} onChange={setVillage} options={selectedDistrict?.villages ?? []} disabled={!district} />
-                  <label className="text-sm font-medium">Kode pos<input required name="postalCode" inputMode="numeric" className={`${inputClassName} mt-2`} placeholder="12345" /></label>
-                  <label className="text-sm font-medium sm:col-span-2">Alamat lengkap<textarea required name="address" rows={3} className="mt-2 w-full resize-none rounded-xl border border-input bg-background px-3 py-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30" placeholder="Nama jalan, nomor rumah, patokan" /></label>
+                  <label className="text-sm font-medium">Kode pos<input required name="postalCode" inputMode="numeric" value={postalCode} onChange={(event) => setPostalCode(event.target.value)} className={`${inputClassName} mt-2`} placeholder="12345" /></label>
+                  <label className="text-sm font-medium sm:col-span-2">Alamat lengkap<textarea required name="address" rows={3} value={address} onChange={(event) => setAddress(event.target.value)} className="mt-2 w-full resize-none rounded-xl border border-input bg-background px-3 py-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30" placeholder="Nama jalan, nomor rumah, patokan" /></label>
                 </div>
               </section>
 

@@ -31,6 +31,7 @@ class User extends Authenticatable
         'village',
         'postal_code',
         'address',
+        'avatar_path',
     ];
 
     /**
@@ -41,6 +42,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'avatar_path',
     ];
 
     /**
@@ -54,5 +56,12 @@ class User extends Authenticatable
             'birth_date' => 'date:Y-m-d',
             'password' => 'hashed',
         ];
+    }
+
+    protected $appends = ['avatar_url'];
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->avatar_path ? asset('storage/'.$this->avatar_path) : null;
     }
 }

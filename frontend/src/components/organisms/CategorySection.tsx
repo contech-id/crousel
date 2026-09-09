@@ -1,6 +1,8 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
+import { Skeleton } from '@/components/atoms/ui/skeleton'
+
 const fallbackCategories = [
   { name: 'Sandal Slide Women', products: 'Lilya White, Sakura White, Sakura Hexa White, Lantana White.', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80' },
   { name: 'Sandal Slop Unisex', products: 'Serxes, Santos, Chester, Maiden, Alexios, Althair, Claymore.', image: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=800&q=80' },
@@ -15,6 +17,7 @@ type CategorySectionProps = {
 
 export function CategorySection({ showHeading = true }: CategorySectionProps) {
   const [categories, setCategories] = useState(fallbackCategories)
+  const [loading, setLoading] = useState(true)
   const carouselRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,6 +32,7 @@ export function CategorySection({ showHeading = true }: CategorySectionProps) {
         })))
       })
       .catch(() => undefined)
+      .finally(() => setLoading(false))
   }, [])
 
   const moveCarousel = (direction: -1 | 1) => {
@@ -41,9 +45,28 @@ export function CategorySection({ showHeading = true }: CategorySectionProps) {
         <span id="collections" className="relative -top-24 block" aria-hidden="true" />
         {showHeading && <div className="flex flex-wrap items-end justify-between gap-4" data-aos="fade-up"><div><p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Jelajahi kategori</p><h2 className="mt-2 text-3xl tracking-tight sm:text-4xl">Temukan sandal sesuai gayamu</h2></div><div className="flex items-center gap-2" data-aos="fade-left" data-aos-delay="100"><button type="button" onClick={() => moveCarousel(-1)} aria-label="Kategori sebelumnya" className="flex size-10 items-center justify-center rounded-full border border-border bg-background transition-colors hover:bg-muted"><ChevronLeft aria-hidden="true" className="size-4" /></button><button type="button" onClick={() => moveCarousel(1)} aria-label="Kategori berikutnya" className="flex size-10 items-center justify-center rounded-full border border-border bg-background transition-colors hover:bg-muted"><ChevronRight aria-hidden="true" className="size-4" /></button></div></div>}
         <div ref={carouselRef} className={`flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showHeading ? 'mt-8' : ''}`}>
-          {categories.map(({ name, products, image }, index) => <article key={name} className="group w-[82%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-background transition-shadow hover:shadow-md sm:w-[calc(50%-0.5rem)] lg:w-[calc(20%-0.8rem)]" data-aos="fade-up" data-aos-delay={String(index * 100)}><div className="aspect-[1.2] overflow-hidden bg-muted"><img src={image} alt={`Produk ${name}`} loading="lazy" className="h-full w-full object-cover grayscale-[15%] transition-transform duration-500 group-hover:scale-105" /></div><div className="p-3 sm:p-5" data-scroll-static><h3 className="text-sm capitalize leading-snug sm:text-lg">{name}</h3><p className="mt-2 text-[10px] leading-4 text-muted-foreground sm:mt-3 sm:text-xs sm:leading-5">{products}</p><a href={`/belanja?category=${encodeURIComponent(name)}`} className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-muted-foreground transition-colors group-hover:text-foreground sm:mt-5 sm:text-xs">Lihat produk <ArrowRight aria-hidden="true" className="size-3.5" /></a></div></article>)}
+          {loading
+            ? Array.from({ length: 5 }).map((_, index) => <CategorySkeleton key={index} index={index} />)
+            : categories.map(({ name, products, image }, index) => <article key={name} className="group w-[82%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-background transition-shadow hover:shadow-md sm:w-[calc(50%-0.5rem)] lg:w-[calc(20%-0.8rem)]" data-aos="fade-up" data-aos-delay={String(index * 100)}><div className="aspect-[1.2] overflow-hidden bg-muted"><img src={image} alt={`Produk ${name}`} loading="lazy" className="h-full w-full object-cover grayscale-[15%] transition-transform duration-500 group-hover:scale-105" /></div><div className="p-3 sm:p-5" data-scroll-static><h3 className="text-sm capitalize leading-snug sm:text-lg">{name}</h3><p className="mt-2 text-[10px] leading-4 text-muted-foreground sm:mt-3 sm:text-xs sm:leading-5">{products}</p><a href={`/belanja?category=${encodeURIComponent(name)}`} className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-muted-foreground transition-colors group-hover:text-foreground sm:mt-5 sm:text-xs">Lihat produk <ArrowRight aria-hidden="true" className="size-3.5" /></a></div></article>)}
         </div>
       </div>
     </section>
+  )
+}
+
+function CategorySkeleton({ index }: { index: number }) {
+  return (
+    <article
+      className="w-[82%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-background sm:w-[calc(50%-0.5rem)] lg:w-[calc(20%-0.8rem)]"
+      data-aos="fade-up"
+      data-aos-delay={String(index * 100)}
+    >
+      <Skeleton className="aspect-[1.2] w-full rounded-none" />
+      <div className="p-3 sm:p-5">
+        <Skeleton className="h-5 w-3/4 sm:h-6" />
+        <Skeleton className="mt-2 h-8 w-full sm:mt-3 sm:h-10" />
+        <Skeleton className="mt-4 h-4 w-24 sm:mt-5" />
+      </div>
+    </article>
   )
 }
