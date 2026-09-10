@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\AdminAuthController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\LocationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -19,6 +21,11 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/categories', [ProductCategoryController::class, 'index']);
     Route::get('/categories/{category}', [ProductCategoryController::class, 'show']);
     Route::get('/settings/customization', [SettingsController::class, 'customization']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/locations/provinces', [LocationController::class, 'provinces']);
+    Route::get('/locations/cities/{provinceId}', [LocationController::class, 'cities']);
+    Route::get('/locations/districts/{cityId}', [LocationController::class, 'districts']);
+    Route::get('/locations/subdistricts/{districtId}', [LocationController::class, 'subdistricts']);
 
     // Store settings are exposed as a cohesive module. Replace with admin auth middleware in production.
     Route::get('/settings', [SettingsController::class, 'index']);
@@ -54,6 +61,7 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/account', [AdminAuthController::class, 'updateAccount']);
         Route::put('/account/password', [AdminAuthController::class, 'updatePassword']);
         Route::post('/categories', [ProductCategoryController::class, 'store']);
+        Route::get('/orders', [OrderController::class, 'index']);
         Route::patch('/categories/{category}', [ProductCategoryController::class, 'update']);
         Route::delete('/categories/{category}', [ProductCategoryController::class, 'destroy']);
         Route::put('/customization', [SettingsController::class, 'updateCustomization']);

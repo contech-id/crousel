@@ -5,14 +5,15 @@ import { StoreNavbar } from '@/components/organisms/StoreNavbar'
 
 type AppShellProps = {
   children: ReactNode
+  hideFooter?: boolean
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, hideFooter }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background">
       <StoreNavbar />
       <main>{children}</main>
-      <FooterSection />
+      {!hideFooter && <FooterSection />}
     </div>
   )
 }

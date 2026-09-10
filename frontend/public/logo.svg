@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 52" role="img" aria-labelledby="title">
+  <title id="title">Crousel</title>
+  <g fill="none" stroke="#fbbc03" stroke-width="5" stroke-linecap="round">
+    <path d="M39 14a18 18 0 1 0 0 24"/><path d="M30 20h14M30 32h14"/>
+  </g>
+  <text x="58" y="36" fill="#fff" font-family="Arial, sans-serif" font-size="29" font-weight="800" letter-spacing="1">CROUSEL</text>
+</svg>

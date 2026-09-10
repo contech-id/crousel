@@ -21,7 +21,7 @@ export function CartPage() {
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">
               Crousel checkout
             </p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">
+            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
               Keranjangmu
             </h1>
           </div>

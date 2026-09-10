@@ -16,8 +16,8 @@ export function FooterSection() {
     <footer className="bg-foreground text-background" data-scroll-static>
       <div className="mx-auto grid max-w-[90rem] gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 sm:py-16 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-12 lg:px-8 lg:py-20">
         <div className="max-w-sm">
-          <a href="/" className="inline-flex text-2xl font-black tracking-[-0.08em]" aria-label="Beranda Crousel Official">
-            CROUSEL<span className="text-secondary">.</span>
+          <a href="/" className="inline-flex" aria-label="Beranda Crousel Official">
+            <img src="/logo.svg" alt="Crousel" className="h-12 w-auto" />
           </a>
           <p className="mt-6 max-w-xs text-sm leading-6 text-background/60">
             Sandal casual yang dirancang dengan passion untuk menemani setiap cerita dan aktivitasmu.
@@ -65,4 +65,3 @@ function FooterColumn({ title, links }: FooterColumnProps) {
     </div>
   )
 }
-

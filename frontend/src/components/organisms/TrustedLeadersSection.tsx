@@ -35,7 +35,7 @@ export function TrustedLeadersSection() {
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Cerita pelanggan</p>
             <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">Dipercaya untuk setiap langkah.</h2>
             <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted-foreground">Temani aktivitasmu dengan sandal yang nyaman, stylish, dan dibuat dengan perhatian pada setiap detail.</p>
-            <a href="/belanja" className="mt-7 inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 text-xs font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5">Lihat koleksi <ArrowRight aria-hidden="true" className="size-4" /></a>
+            <a href="/belanja" className="mt-7 inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 text-xs font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5">Lihat katalog <ArrowRight aria-hidden="true" className="size-4" /></a>
           </div>
         </div>
       </div>

@@ -120,9 +120,7 @@ export function HomePage({ customization }: { customization: StoreCustomization 
               Katalog produk
             </h2>
           </div>
-          <a href="/belanja" className="text-sm font-semibold" data-aos="fade-left" data-aos-delay="100">
-            Lihat katalog
-          </a>
+          <a href="/belanja" className="hidden rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground sm:inline-flex" data-aos="fade-left" data-aos-delay="100">Lihat katalog</a>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-5 lg:grid-cols-5">
           {loading
@@ -137,6 +135,7 @@ export function HomePage({ customization }: { customization: StoreCustomization 
                 </div>
               ))}
         </div>
+        <a href="/belanja" className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground sm:hidden">Lihat katalog</a>
       </section>
 
       <section

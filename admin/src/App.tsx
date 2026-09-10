@@ -1,310 +1,1922 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
-import * as React from 'react'
-import './App.css'
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import * as React from "react";
+import "./App.css";
 
-type Page = 'home' | 'customers' | 'products' | 'categories' | 'settings' | 'account'
+type Page = "home" | "customers" | "products" | "categories" | "settings" | "account" | "orders" | "shipping-status";
+type OrderStatus = "Menunggu pembayaran" | "Diproses" | "Dikemas" | "Dikirim" | "Selesai" | "Dibatalkan";
+type AdminOrder = {
+  id: string;
+  customer: string;
+  date: string;
+  products: string;
+  items: number;
+  payment: string;
+  total: number;
+  status: OrderStatus;
+};
 type Product = {
-  id: number; slug: string; name: string; category: string; target: string; color: string
-  availableColors: string[]; images: string[]; description: string; price: string
-  features: string[]; availableSizes: string[]; availability: string
-}
-type Customer = { id: number; name: string; whatsapp: string; created_at: string; province?: string | null }
-type ProductCategory = { id: number; name: string; example_products: string; image?: string | null; created_at: string; updated_at: string }
-type ProductForm = Omit<Product, 'id' | 'images'> & { images: File[]; existingImages: string[]; deletedImages: string[] }
-type StoreProfile = { store_name: string; store_email: string; whatsapp: string; province: string; regency: string; district: string; village: string; postal_code: string; address: string; location_landmark?: string | null }
-type ShippingMethod = { id: number; code: string; name: string; provider?: string; is_active: boolean }
-type PaymentMethod = { id: number; code: string; name: string; type: string; is_active: boolean }
-type NotificationSettings = { new_customer: boolean; new_order: boolean }
-type AdminNotification = { id: number; type: string; title: string; message: string; read_at?: string | null; created_at: string }
-type AdminAccount = { id: number; name: string; username: string; phone?: string | null; email: string; role: string; is_active: boolean }
-type CustomizationData = { secondary_color: string; hero_image: string | null; size_guide_image: string | null; about_image: string | null; story_images: Array<string | null> }
+  id: number;
+  slug: string;
+  name: string;
+  category: string;
+  target: string;
+  color: string;
+  availableColors: string[];
+  images: string[];
+  description: string;
+  price: string;
+  features: string[];
+  availableSizes: string[];
+  availability: string;
+};
+type Customer = {
+  id: number;
+  name: string;
+  whatsapp: string;
+  created_at: string;
+  province?: string | null;
+};
+type ProductCategory = {
+  id: number;
+  name: string;
+  example_products: string;
+  image?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+type ProductForm = Omit<Product, "id" | "images"> & {
+  images: File[];
+  existingImages: string[];
+  deletedImages: string[];
+};
+type StoreProfile = {
+  store_name: string;
+  store_email: string;
+  whatsapp: string;
+  province: string;
+  regency: string;
+  district: string;
+  village: string;
+  postal_code: string;
+  address: string;
+  location_landmark?: string | null;
+};
+type ShippingMethod = {
+  id: number;
+  code: string;
+  name: string;
+  provider?: string;
+  is_active: boolean;
+};
+type PaymentMethod = {
+  id: number;
+  code: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+};
+type NotificationSettings = { new_customer: boolean; new_order: boolean };
+type AdminNotification = {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  read_at?: string | null;
+  created_at: string;
+};
+type AdminAccount = {
+  id: number;
+  name: string;
+  username: string;
+  phone?: string | null;
+  email: string;
+  role: string;
+  is_active: boolean;
+};
+type CustomizationData = {
+  secondary_color: string;
+  hero_image: string | null;
+  size_guide_image: string | null;
+  about_image: string | null;
+  story_images: Array<string | null>;
+};
 
-const API_BASE = import.meta.env.VITE_API_URL
-const emptyProduct: ProductForm = { slug: '', name: '', category: 'Slide', target: 'Women', color: '', availableColors: [], images: [], existingImages: [], deletedImages: [], description: '', price: '', features: [], availableSizes: [], availability: 'Tersedia' }
+const API_BASE = import.meta.env.VITE_API_URL;
+const emptyProduct: ProductForm = {
+  slug: "",
+  name: "",
+  category: "Slide",
+  target: "Women",
+  color: "",
+  availableColors: [],
+  images: [],
+  existingImages: [],
+  deletedImages: [],
+  description: "",
+  price: "",
+  features: [],
+  availableSizes: [],
+  availability: "Tersedia",
+};
 
 function slugify(value: string) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = sessionStorage.getItem('admin_api_token') ?? import.meta.env.VITE_API_TOKEN
-  const isFormData = options.body instanceof FormData
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers: { Accept: 'application/json', ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers } })
-  const payload = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(payload.message ?? `API error (${response.status})`)
-  return payload as T
+  const token = sessionStorage.getItem("admin_api_token") ?? import.meta.env.VITE_API_TOKEN;
+  const isFormData = options.body instanceof FormData;
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      Accept: "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.message ?? `API error (${response.status})`);
+  return payload as T;
 }
 
 function App() {
-  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem('admin_authenticated') === 'true' && Boolean(sessionStorage.getItem('admin_api_token')))
-  const [page, setPage] = useState<Page>(() => (window.location.hash.slice(1) as Page) || 'home')
-  useEffect(() => { const onHashChange = () => setPage((window.location.hash.slice(1) as Page) || 'home'); window.addEventListener('hashchange', onHashChange); return () => window.removeEventListener('hashchange', onHashChange) }, [])
-  const navigate = (nextPage: Page) => { window.location.hash = nextPage }
-  const login = () => { sessionStorage.setItem('admin_authenticated', 'true'); setAuthenticated(true); navigate('home') }
-  const logout = () => { sessionStorage.removeItem('admin_authenticated'); sessionStorage.removeItem('admin_api_token'); setAuthenticated(false) }
-  if (!authenticated) return <LoginPageEnhanced onLogin={login} />
-  return <AdminShellEnhanced page={page} onNavigate={navigate} onLogout={logout} />
+  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem("admin_authenticated") === "true" && Boolean(sessionStorage.getItem("admin_api_token")));
+  const [page, setPage] = useState<Page>(() => (window.location.hash.slice(1) as Page) || "home");
+  useEffect(() => {
+    const onHashChange = () => setPage((window.location.hash.slice(1) as Page) || "home");
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+  const navigate = (nextPage: Page) => {
+    window.location.hash = nextPage;
+  };
+  const login = () => {
+    sessionStorage.setItem("admin_authenticated", "true");
+    setAuthenticated(true);
+    navigate("home");
+  };
+  const logout = () => {
+    sessionStorage.removeItem("admin_authenticated");
+    sessionStorage.removeItem("admin_api_token");
+    setAuthenticated(false);
+  };
+  if (!authenticated) return <LoginPageEnhanced onLogin={login} />;
+  return <AdminShellEnhanced page={page} onNavigate={navigate} onLogout={logout} />;
 }
 
 function LoginPageEnhanced({ onLogin }: { onLogin: () => void }) {
-  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
-  const submit = async (event: FormEvent) => { event.preventDefault(); setLoading(true); setError(''); try { const response = await fetch(`${API_BASE}/admin/auth/login`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.message ?? 'Login admin gagal.'); sessionStorage.setItem('admin_api_token', payload.data.token); onLogin() } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Login admin gagal.') } finally { setLoading(false) } }
-  return <main className="login-page"><div className="login-art" aria-hidden="true"><div className="art-orb orb-one" /><div className="art-orb orb-two" /><p className="art-wordmark">CROUSEL<span>.</span></p><p className="art-caption">YOUR HAPPINESS STUFF</p></div><section className="login-panel"><div className="login-content"><p className="eyebrow">Admin workspace</p><h1>Selamat datang kembali.</h1><p className="muted">Masuk dengan akun admin untuk mengelola Crousel.</p><form onSubmit={(event) => void submit(event)} className="login-form"><label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@crousel.id" /></label><label>Password<input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Masukkan password" /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" type="submit" disabled={loading}>{loading ? 'Memproses...' : 'Masuk ke dashboard'}</button></form><div className="demo-hint"><span className="hint-dot" /> Demo: <strong>admin@crousel.id</strong> · <strong>admin123</strong></div></div></section></main>
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${API_BASE}/admin/auth/login`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.message ?? "Login admin gagal.");
+      sessionStorage.setItem("admin_api_token", payload.data.token);
+      onLogin();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Login admin gagal.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <main className="login-page">
+      <div className="login-art" aria-hidden="true">
+        <div className="art-orb orb-one" />
+        <div className="art-orb orb-two" />
+        <p className="art-wordmark">
+          CROUSEL<span>.</span>
+        </p>
+        <p className="art-caption">YOUR HAPPINESS STUFF</p>
+      </div>
+      <section className="login-panel">
+        <div className="login-content">
+          <p className="eyebrow">Admin workspace</p>
+          <h1>Selamat datang kembali.</h1>
+          <p className="muted">Masuk dengan akun admin untuk mengelola Crousel.</p>
+          <form onSubmit={(event) => void submit(event)} className="login-form">
+            <label>
+              Email
+              <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@crousel.id" />
+            </label>
+            <label>
+              Password
+              <input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Masukkan password" />
+            </label>
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+            <button className="primary-button" type="submit" disabled={loading}>
+              {loading ? "Memproses..." : "Masuk ke dashboard"}
+            </button>
+          </form>
+          <div className="demo-hint">
+            <span className="hint-dot" /> Demo: <strong>admin@crousel.id</strong> · <strong>admin123</strong>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }
 
 function AdminShellEnhanced({ page, onNavigate, onLogout }: { page: Page; onNavigate: (page: Page) => void; onLogout: () => void }) {
-  const [mobileSidebar, setMobileSidebar] = useState(false); const [notifications, setNotifications] = useState<AdminNotification[]>([]); const [showNotifications, setShowNotifications] = useState(false)
-  const nav = (nextPage: Page) => { onNavigate(nextPage); setMobileSidebar(false) }
-  useEffect(() => { void apiRequest<{ data: { notifications: AdminNotification[] } }>('/notifications').then((result) => setNotifications(result.data.notifications)).catch(() => undefined) }, [])
-  const unread = notifications.filter((item) => !item.read_at).length
-  const markRead = async (item: AdminNotification) => { if (item.read_at) return; await apiRequest(`/notifications/${item.id}/read`, { method: 'PATCH' }).catch(() => undefined); setNotifications((items) => items.map((current) => current.id === item.id ? { ...current, read_at: new Date().toISOString() } : current)) }
-  const title = page === 'home' ? 'Overview' : page === 'products' ? 'Product catalogue' : page === 'categories' ? 'Kategori produk' : page === 'customers' ? 'Customer directory' : page === 'account' ? 'Akun admin' : 'Pengaturan toko'
-  return <div className="admin-shell"><aside className={`sidebar ${mobileSidebar ? 'sidebar-open' : ''}`}><div className="sidebar-brand"><span className="brand-mark">C</span><span><strong>CROUSEL</strong><small>Admin workspace</small></span><button className="icon-button sidebar-close" onClick={() => setMobileSidebar(false)} aria-label="Tutup sidebar">x</button></div><p className="nav-label">Workspace</p><nav className="sidebar-nav"><NavItem icon="H" label="Home" active={page === 'home'} onClick={() => nav('home')} /><NavItem icon="U" label="Users / Customer" active={page === 'customers'} onClick={() => nav('customers')} /><NavItem icon="P" label="Produk" active={page === 'products'} onClick={() => nav('products')} /><NavItem icon="K" label="Kategori" active={page === 'categories'} onClick={() => nav('categories')} /><NavItem icon="S" label="Pengaturan" active={page === 'settings'} onClick={() => nav('settings')} /><NavItem icon="A" label="Akun admin" active={page === 'account'} onClick={() => nav('account')} /></nav><div className="sidebar-bottom"><div className="admin-mini"><span className="avatar">A</span><span><strong>Admin Crousel</strong><small>Administrator</small></span></div><button className="logout-button" onClick={onLogout}>Keluar</button></div></aside>{mobileSidebar && <button className="sidebar-backdrop" onClick={() => setMobileSidebar(false)} aria-label="Tutup menu" />}<div className="content-shell"><header className="topbar"><button className="menu-toggle" onClick={() => setMobileSidebar(true)} aria-label="Buka menu">=</button><div><p className="topbar-kicker">Crousel Official</p><p className="topbar-title">{title}</p></div><div className="topbar-actions"><span className="status-pill"><i /> API workspace</span><div className="notification-wrap"><button className="notification-button" onClick={() => setShowNotifications((value) => !value)} aria-label="Notifikasi">Bell {unread > 0 && <b>{unread}</b>}</button>{showNotifications && <div className="notification-popover"><strong>Notifikasi</strong>{notifications.length === 0 ? <small>Belum ada notifikasi.</small> : notifications.map((item) => <button className={`notification-item ${item.read_at ? 'read' : ''}`} key={item.id} onClick={() => void markRead(item)}><strong>{item.title}</strong><small>{item.message}</small><em>{new Date(item.created_at).toLocaleString('id-ID')}</em></button>)}</div>}</div><span className="topbar-avatar">A</span></div></header><main className="page-content">{page === 'home' && <HomePage onNavigate={onNavigate} />}{page === 'products' && <ProductsPage />}{page === 'categories' && <CategoriesPage />}{page === 'customers' && <CustomersPage />}{page === 'settings' && <SettingsPage />}{page === 'account' && <AccountPage />}</main></div></div>
+  const [mobileSidebar, setMobileSidebar] = useState(false);
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const nav = (nextPage: Page) => {
+    onNavigate(nextPage);
+    setMobileSidebar(false);
+  };
+  useEffect(() => {
+    void apiRequest<{ data: { notifications: AdminNotification[] } }>("/notifications")
+      .then((result) => setNotifications(result.data.notifications))
+      .catch(() => undefined);
+  }, []);
+  const unread = notifications.filter((item) => !item.read_at).length;
+  const markRead = async (item: AdminNotification) => {
+    if (item.read_at) return;
+    await apiRequest(`/notifications/${item.id}/read`, {
+      method: "PATCH",
+    }).catch(() => undefined);
+    setNotifications((items) => items.map((current) => (current.id === item.id ? { ...current, read_at: new Date().toISOString() } : current)));
+  };
+  const title = page === "home" ? "Overview" : page === "products" ? "Product catalogue" : page === "categories" ? "Kategori produk" : page === "customers" ? "Customer directory" : page === "account" ? "Akun admin" : page === "orders" ? "Pesanan" : page === "shipping-status" ? "Status barang" : "Pengaturan toko";
+  return (
+    <div className="admin-shell">
+      <aside className={`sidebar ${mobileSidebar ? "sidebar-open" : ""}`}>
+        <div className="sidebar-brand">
+          <span className="brand-mark">C</span>
+          <span>
+            <strong>CROUSEL</strong>
+            <small>Admin workspace</small>
+          </span>
+          <button className="icon-button sidebar-close" onClick={() => setMobileSidebar(false)} aria-label="Tutup sidebar">
+            x
+          </button>
+        </div>
+        <p className="nav-label">Workspace</p>
+        <nav className="sidebar-nav">
+          <NavItem icon="H" label="Home" active={page === "home"} onClick={() => nav("home")} />
+          <NavItem icon="U" label="Users / Customer" active={page === "customers"} onClick={() => nav("customers")} />
+          <NavItem icon="P" label="Produk" active={page === "products"} onClick={() => nav("products")} />
+          <NavItem icon="K" label="Kategori" active={page === "categories"} onClick={() => nav("categories")} />
+          <NavItem icon="O" label="Pesanan" active={page === "orders"} onClick={() => nav("orders")} />
+          <NavItem icon="T" label="Status barang" active={page === "shipping-status"} onClick={() => nav("shipping-status")} />
+          <NavItem icon="S" label="Pengaturan" active={page === "settings"} onClick={() => nav("settings")} />
+          <NavItem icon="A" label="Akun admin" active={page === "account"} onClick={() => nav("account")} />
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="admin-mini">
+            <span className="avatar">A</span>
+            <span>
+              <strong>Admin Crousel</strong>
+              <small>Administrator</small>
+            </span>
+          </div>
+          <button className="logout-button" onClick={onLogout}>
+            Keluar
+          </button>
+        </div>
+      </aside>
+      {mobileSidebar && <button className="sidebar-backdrop" onClick={() => setMobileSidebar(false)} aria-label="Tutup menu" />}
+      <div className="content-shell">
+        <header className="topbar">
+          <button className="menu-toggle" onClick={() => setMobileSidebar(true)} aria-label="Buka menu">
+            =
+          </button>
+          <div>
+            <p className="topbar-kicker">Crousel Official</p>
+            <p className="topbar-title">{title}</p>
+          </div>
+          <div className="topbar-actions">
+            <span className="status-pill">
+              <i /> API workspace
+            </span>
+            <div className="notification-wrap">
+              <button className="notification-button" onClick={() => setShowNotifications((value) => !value)} aria-label="Notifikasi">
+                Bell {unread > 0 && <b>{unread}</b>}
+              </button>
+              {showNotifications && (
+                <div className="notification-popover">
+                  <strong>Notifikasi</strong>
+                  {notifications.length === 0 ? (
+                    <small>Belum ada notifikasi.</small>
+                  ) : (
+                    notifications.map((item) => (
+                      <button className={`notification-item ${item.read_at ? "read" : ""}`} key={item.id} onClick={() => void markRead(item)}>
+                        <strong>{item.title}</strong>
+                        <small>{item.message}</small>
+                        <em>{new Date(item.created_at).toLocaleString("id-ID")}</em>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            <span className="topbar-avatar">A</span>
+          </div>
+        </header>
+        <main className="page-content">
+          {page === "home" && <HomePage onNavigate={onNavigate} />}
+          {page === "products" && <ProductsPage />}
+          {page === "categories" && <CategoriesPage />}
+          {page === "customers" && <CustomersPage />}
+          {page === "settings" && <SettingsPage />}
+          {page === "account" && <AccountPage />}
+          {page === "orders" && <OrdersPage />}
+          {page === "shipping-status" && <ShippingStatusPage />}
+        </main>
+      </div>
+    </div>
+  );
 }
 
-function NavItem({ icon, label, active, onClick }: { icon: string; label: string; active: boolean; onClick: () => void }) { return <button className={`nav-item ${active ? 'active' : ''}`} onClick={onClick}><span className="nav-icon">{icon}</span>{label}<span className="nav-arrow">›</span></button> }
+function NavItem({ icon, label, active, onClick }: { icon: string; label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>
+      <span className="nav-icon">{icon}</span>
+      {label}
+      <span className="nav-arrow">›</span>
+    </button>
+  );
+}
 
 function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
-  const [products, setProducts] = useState<Product[]>([]); const [customers, setCustomers] = useState<Customer[]>([])
-  useEffect(() => { void Promise.all([apiRequest<{ data: Product[] }>('/products'), apiRequest<{ data: Customer[] }>('/users')]).then(([productData, customerData]) => { setProducts(productData.data); setCustomers(customerData.data) }).catch(() => undefined) }, [])
-  const months = ['OKT', 'NOV', 'DES', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGT', 'SEP']
-  return <div className="home-dashboard"><section className="home-stat-grid"><HomeStat label="Pendapatan" value="Rp 0" note="dari pesanan dibayar" tone="blue" /><HomeStat label="Pesanan" value="0" note="pesanan non-batal" tone="pink" /><HomeStat label="Produk aktif" value={String(products.length)} note="siap ditampilkan" tone="orange" /><HomeStat label="Pelanggan" value={String(customers.length)} note="sudah bertransaksi" tone="blue" /></section><section className="home-main-grid"><article className="panel performance-card"><div className="home-panel-heading"><div><h2>Performa 12 bulan</h2><p>Nilai transaksi dari pesanan yang telah dibayar.</p></div><span className="year-pill">2026</span></div><div className="chart-area">{months.map((month) => <div className="chart-column" key={month}><strong>0</strong><div className="chart-bar" /><small>{month}</small></div>)}</div></article><article className="panel category-card"><h2>Kategori teratas</h2><p className="empty-home-text">{products.length ? 'Kategori produk akan tampil setelah ada transaksi.' : 'Belum ada data produk terjual.'}</p></article></section><article className="panel orders-card"><div className="home-panel-heading"><h2>Pesanan terbaru</h2><button className="link-button" onClick={() => onNavigate('customers')}>Lihat semua</button></div><div className="orders-table"><div className="orders-head"><span>ID</span><span>PELANGGAN</span><span>PRODUK</span><span>TOTAL</span><span>STATUS</span></div><div className="orders-empty">Belum ada pesanan terbaru.</div></div></article></div>
+  const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  useEffect(() => {
+    void Promise.all([apiRequest<{ data: Product[] }>("/products"), apiRequest<{ data: Customer[] }>("/users")])
+      .then(([productData, customerData]) => {
+        setProducts(productData.data);
+        setCustomers(customerData.data);
+      })
+      .catch(() => undefined);
+  }, []);
+  const months = ["OKT", "NOV", "DES", "JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGT", "SEP"];
+  return (
+    <div className="home-dashboard">
+      <section className="home-stat-grid">
+        <HomeStat label="Pendapatan" value="Rp 0" note="dari pesanan dibayar" tone="blue" />
+        <HomeStat label="Pesanan" value="0" note="pesanan non-batal" tone="pink" />
+        <HomeStat label="Produk aktif" value={String(products.length)} note="siap ditampilkan" tone="orange" />
+        <HomeStat label="Pelanggan" value={String(customers.length)} note="sudah bertransaksi" tone="blue" />
+      </section>
+      <section className="home-main-grid">
+        <article className="panel performance-card">
+          <div className="home-panel-heading">
+            <div>
+              <h2>Performa 12 bulan</h2>
+              <p>Nilai transaksi dari pesanan yang telah dibayar.</p>
+            </div>
+            <span className="year-pill">2026</span>
+          </div>
+          <div className="chart-area">
+            {months.map((month) => (
+              <div className="chart-column" key={month}>
+                <strong>0</strong>
+                <div className="chart-bar" />
+                <small>{month}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+        <article className="panel category-card">
+          <h2>Kategori teratas</h2>
+          <p className="empty-home-text">{products.length ? "Kategori produk akan tampil setelah ada transaksi." : "Belum ada data produk terjual."}</p>
+        </article>
+      </section>
+      <article className="panel orders-card">
+        <div className="home-panel-heading">
+          <h2>Pesanan terbaru</h2>
+          <button className="link-button" onClick={() => onNavigate("customers")}>
+            Lihat semua
+          </button>
+        </div>
+        <div className="orders-table">
+          <div className="orders-head">
+            <span>ID</span>
+            <span>PELANGGAN</span>
+            <span>PRODUK</span>
+            <span>TOTAL</span>
+            <span>STATUS</span>
+          </div>
+          <div className="orders-empty">Belum ada pesanan terbaru.</div>
+        </div>
+      </article>
+    </div>
+  );
 }
-function HomeStat({ label, value, note, tone }: { label: string; value: string; note: string; tone: string }) { return <article className="home-stat"><div className={`stat-dot ${tone}`} /><p>{label}</p><strong>{value}</strong><small>↗ {note}</small></article> }
+function HomeStat({ label, value, note, tone }: { label: string; value: string; note: string; tone: string }) {
+  return (
+    <article className="home-stat">
+      <div className={`stat-dot ${tone}`} />
+      <p>{label}</p>
+      <strong>{value}</strong>
+      <small>↗ {note}</small>
+    </article>
+  );
+}
 
 function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]); const [query, setQuery] = useState(''); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [editing, setEditing] = useState<Product | null>(null); const [showForm, setShowForm] = useState(false)
-  const load = async () => { setLoading(true); try { const result = await apiRequest<{ data: Product[] }>('/products'); setProducts(result.data); setError('') } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Tidak dapat memuat produk.') } finally { setLoading(false) } }
-  useEffect(() => { const timer = window.setTimeout(() => { void load() }, 0); return () => window.clearTimeout(timer) }, [])
-  const filtered = useMemo(() => products.filter((product) => `${product.name} ${product.category}`.toLowerCase().includes(query.toLowerCase())), [products, query])
-  const remove = async (product: Product) => { if (!window.confirm(`Hapus ${product.name}?`)) return; try { await apiRequest(`/products/${product.id}`, { method: 'DELETE' }); setProducts((items) => items.filter((item) => item.id !== product.id)); setError('') } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Produk gagal dihapus.') } }
-  return <><div className="page-heading"><div><p className="eyebrow">Catalog management</p><h1>Produk</h1><p className="muted">Kelola semua produk yang tampil di katalog Crousel.</p></div><button className="primary-button compact" onClick={() => { setEditing(null); setShowForm(true) }}>+ Tambah produk</button></div><section className="panel table-panel"><div className="table-toolbar"><div className="search-field"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama atau kategori..." /></div><button className="outline-button" onClick={() => void load()}>Refresh ↻</button></div>{error && <div className="api-error">{error} <small>Pastikan backend berjalan di {API_BASE}.</small></div>}{loading ? <Loading /> : filtered.length ? <div className="table-scroll"><table><thead><tr><th>Produk</th><th>Kategori</th><th>Target</th><th>Harga</th><th>Status</th><th aria-label="Aksi" /></tr></thead><tbody>{filtered.map((product) => <tr key={product.id}><td><div className="product-cell"><div className="product-thumb">{product.images?.[0] ? <img src={product.images[0]} alt="" /> : <span>□</span>}</div><span><strong>{product.name}</strong><small>{product.slug}</small></span></div></td><td>{product.category}</td><td>{product.target}</td><td className="price-cell">{product.price}</td><td><span className={`availability ${product.availability === 'Tersedia' ? 'available' : ''}`}>{product.availability}</span></td><td><div className="row-actions"><button onClick={() => { setEditing(product); setShowForm(true) }} aria-label={`Edit ${product.name}`}>Edit</button><button className="danger-text" onClick={() => void remove(product)} aria-label={`Hapus ${product.name}`}>Hapus</button></div></td></tr>)}</tbody></table></div> : <EmptyState message="Belum ada produk di database." />}</section>{showForm && <ProductModal product={editing} onClose={() => setShowForm(false)} onSaved={(product) => { setProducts((items) => editing ? items.map((item) => item.id === product.id ? product : item) : [product, ...items]); setShowForm(false) }} />}</>
+  const [products, setProducts] = useState<Product[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState<Product | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const result = await apiRequest<{ data: Product[] }>("/products");
+      setProducts(result.data);
+      setError("");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Tidak dapat memuat produk.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const filtered = useMemo(() => products.filter((product) => `${product.name} ${product.category}`.toLowerCase().includes(query.toLowerCase())), [products, query]);
+  const remove = async (product: Product) => {
+    if (!window.confirm(`Hapus ${product.name}?`)) return;
+    try {
+      await apiRequest(`/products/${product.id}`, { method: "DELETE" });
+      setProducts((items) => items.filter((item) => item.id !== product.id));
+      setError("");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Produk gagal dihapus.");
+    }
+  };
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Catalog management</p>
+          <h1>Produk</h1>
+          <p className="muted">Kelola semua produk yang tampil di katalog Crousel.</p>
+        </div>
+        <button
+          className="primary-button compact"
+          onClick={() => {
+            setEditing(null);
+            setShowForm(true);
+          }}
+        >
+          + Tambah produk
+        </button>
+      </div>
+      <section className="panel table-panel">
+        <div className="table-toolbar">
+          <div className="search-field">
+            <span>⌕</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama atau kategori..." />
+          </div>
+          <button className="outline-button" onClick={() => void load()}>
+            Refresh ↻
+          </button>
+        </div>
+        {error && (
+          <div className="api-error">
+            {error} <small>Pastikan backend berjalan di {API_BASE}.</small>
+          </div>
+        )}
+        {loading ? (
+          <Loading />
+        ) : filtered.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produk</th>
+                  <th>Kategori</th>
+                  <th>Target</th>
+                  <th>Harga</th>
+                  <th>Status</th>
+                  <th aria-label="Aksi" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((product) => (
+                  <tr key={product.id}>
+                    <td>
+                      <div className="product-cell">
+                        <div className="product-thumb">{product.images?.[0] ? <img src={product.images[0]} alt="" /> : <span>□</span>}</div>
+                        <span>
+                          <strong>{product.name}</strong>
+                          <small>{product.slug}</small>
+                        </span>
+                      </div>
+                    </td>
+                    <td>{product.category}</td>
+                    <td>{product.target}</td>
+                    <td className="price-cell">{product.price}</td>
+                    <td>
+                      <span className={`availability ${product.availability === "Tersedia" ? "available" : ""}`}>{product.availability}</span>
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button
+                          onClick={() => {
+                            setEditing(product);
+                            setShowForm(true);
+                          }}
+                          aria-label={`Edit ${product.name}`}
+                        >
+                          Edit
+                        </button>
+                        <button className="danger-text" onClick={() => void remove(product)} aria-label={`Hapus ${product.name}`}>
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState message="Belum ada produk di database." />
+        )}
+      </section>
+      {showForm && (
+        <ProductModal
+          product={editing}
+          onClose={() => setShowForm(false)}
+          onSaved={(product) => {
+            setProducts((items) => (editing ? items.map((item) => (item.id === product.id ? product : item)) : [product, ...items]));
+            setShowForm(false);
+          }}
+        />
+      )}
+    </>
+  );
 }
 
-const categoryNames = ['unisex', 'kids', 'women', 'men', 'wedges', 'slop', 'slides']
+const categoryNames = ["unisex", "kids", "women", "men", "wedges", "slop", "slides"];
 
 function CategoriesPage() {
-  const [categories, setCategories] = useState<ProductCategory[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [editing, setEditing] = useState<ProductCategory | null>(null); const [showForm, setShowForm] = useState(false)
-  const load = async () => { setLoading(true); try { const result = await apiRequest<{ data: ProductCategory[] }>('/categories'); setCategories(result.data); setError('') } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Tidak dapat memuat kategori.') } finally { setLoading(false) } }
-  useEffect(() => { const timer = window.setTimeout(() => { void load() }, 0); return () => window.clearTimeout(timer) }, [])
-  const remove = async (category: ProductCategory) => { if (!window.confirm(`Hapus kategori ${category.name}?`)) return; try { await apiRequest(`/admin/categories/${category.id}`, { method: 'DELETE' }); setCategories((items) => items.filter((item) => item.id !== category.id)); setError('') } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Kategori gagal dihapus.') } }
-  return <><div className="page-heading"><div><p className="eyebrow">Category management</p><h1>Kategori</h1><p className="muted">Kelola kategori dan contoh produk Crousel.</p></div><button className="primary-button compact" onClick={() => { setEditing(null); setShowForm(true) }}>+ Tambah kategori</button></div><section className="panel table-panel"><div className="table-toolbar"><span className="count-badge">{categories.length} kategori</span><button className="outline-button" onClick={() => void load()}>Refresh</button></div>{error && <div className="api-error">{error} <small>Pastikan token admin dan backend API aktif.</small></div>}{loading ? <Loading /> : categories.length ? <div className="table-scroll"><table><thead><tr><th>Gambar</th><th>Nama kategori</th><th>Contoh produk</th><th>Terakhir diperbarui</th><th aria-label="Aksi" /></tr></thead><tbody>{categories.map((category) => <tr key={category.id}><td>{category.image ? <img src={category.image} alt="" className="category-thumb" /> : <span>—</span>}</td><td><strong className="category-name">{category.name}</strong></td><td>{category.example_products}</td><td>{new Date(category.updated_at).toLocaleDateString('id-ID')}</td><td><div className="row-actions"><button onClick={() => { setEditing(category); setShowForm(true) }} aria-label={`Edit ${category.name}`}>Edit</button><button className="danger-text" onClick={() => void remove(category)} aria-label={`Hapus ${category.name}`}>Hapus</button></div></td></tr>)}</tbody></table></div> : <EmptyState message="Belum ada kategori di database." />}</section>{showForm && <CategoryModal category={editing} usedNames={categories.map((category) => category.name)} onClose={() => setShowForm(false)} onSaved={(category) => { setCategories((items) => editing ? items.map((item) => item.id === category.id ? category : item) : [...items, category].sort((a, b) => a.name.localeCompare(b.name))); setShowForm(false) }} />}</>
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState<ProductCategory | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const result = await apiRequest<{ data: ProductCategory[] }>("/categories");
+      setCategories(result.data);
+      setError("");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Tidak dapat memuat kategori.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const remove = async (category: ProductCategory) => {
+    if (!window.confirm(`Hapus kategori ${category.name}?`)) return;
+    try {
+      await apiRequest(`/admin/categories/${category.id}`, {
+        method: "DELETE",
+      });
+      setCategories((items) => items.filter((item) => item.id !== category.id));
+      setError("");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Kategori gagal dihapus.");
+    }
+  };
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Category management</p>
+          <h1>Kategori</h1>
+          <p className="muted">Kelola kategori dan contoh produk Crousel.</p>
+        </div>
+        <button
+          className="primary-button compact"
+          onClick={() => {
+            setEditing(null);
+            setShowForm(true);
+          }}
+        >
+          + Tambah kategori
+        </button>
+      </div>
+      <section className="panel table-panel">
+        <div className="table-toolbar">
+          <span className="count-badge">{categories.length} kategori</span>
+          <button className="outline-button" onClick={() => void load()}>
+            Refresh
+          </button>
+        </div>
+        {error && (
+          <div className="api-error">
+            {error} <small>Pastikan token admin dan backend API aktif.</small>
+          </div>
+        )}
+        {loading ? (
+          <Loading />
+        ) : categories.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Gambar</th>
+                  <th>Nama kategori</th>
+                  <th>Contoh produk</th>
+                  <th>Terakhir diperbarui</th>
+                  <th aria-label="Aksi" />
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map((category) => (
+                  <tr key={category.id}>
+                    <td>{category.image ? <img src={category.image} alt="" className="category-thumb" /> : <span>—</span>}</td>
+                    <td>
+                      <strong className="category-name">{category.name}</strong>
+                    </td>
+                    <td>{category.example_products}</td>
+                    <td>{new Date(category.updated_at).toLocaleDateString("id-ID")}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button
+                          onClick={() => {
+                            setEditing(category);
+                            setShowForm(true);
+                          }}
+                          aria-label={`Edit ${category.name}`}
+                        >
+                          Edit
+                        </button>
+                        <button className="danger-text" onClick={() => void remove(category)} aria-label={`Hapus ${category.name}`}>
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState message="Belum ada kategori di database." />
+        )}
+      </section>
+      {showForm && (
+        <CategoryModal
+          category={editing}
+          usedNames={categories.map((category) => category.name)}
+          onClose={() => setShowForm(false)}
+          onSaved={(category) => {
+            setCategories((items) => (editing ? items.map((item) => (item.id === category.id ? category : item)) : [...items, category].sort((a, b) => a.name.localeCompare(b.name))));
+            setShowForm(false);
+          }}
+        />
+      )}
+    </>
+  );
 }
 
 function CategoryModal({ category, usedNames, onClose, onSaved }: { category: ProductCategory | null; usedNames: string[]; onClose: () => void; onSaved: (category: ProductCategory) => void }) {
-  const availableNames = category ? categoryNames : categoryNames.filter((name) => !usedNames.includes(name))
-  const [name, setName] = useState(category?.name ?? availableNames[0] ?? '')
-  const [exampleProducts, setExampleProducts] = useState(category?.example_products ?? '')
-  const [image, setImage] = useState<File | null>(null); const [error, setError] = useState('')
-  const submit = async (event: FormEvent) => { event.preventDefault(); setError(''); if (!name) { setError('Semua nama kategori yang tersedia sudah digunakan.'); return } try { const body = new FormData(); body.append('name', name); body.append('example_products', exampleProducts); if (image) body.append('image', image); if (category) body.append('_method', 'PATCH'); const result = await apiRequest<{ data: { category: ProductCategory } }>(category ? `/admin/categories/${category.id}` : '/admin/categories', { method: 'POST', body }); onSaved(result.data.category) } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Kategori gagal disimpan.') } }
-  return <div className="modal-backdrop" role="presentation"><section className="modal category-modal" role="dialog" aria-modal="true" aria-labelledby="category-modal-title"><div className="modal-heading"><div><p className="eyebrow">Category</p><h2 id="category-modal-title">{category ? 'Edit kategori' : 'Tambah kategori'}</h2></div><button className="icon-button" onClick={onClose} aria-label="Tutup">×</button></div><form className="product-form" onSubmit={(event) => void submit(event)}><SelectField label="Nama kategori" value={name} options={availableNames} onChange={setName} /><label>Contoh produk<textarea required rows={4} value={exampleProducts} onChange={(event) => setExampleProducts(event.target.value)} placeholder="Nerona, Flavia, Joane." /></label><label>Gambar kategori<input required={!category} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => setImage(event.target.files?.[0] ?? null)} /><small>{category ? 'Pilih gambar baru hanya jika ingin mengganti. Maksimal 5 MB.' : 'Wajib, satu gambar maksimal 5 MB.'}</small></label>{category?.image && !image && <img src={category.image} alt="Gambar kategori saat ini" className="category-form-image" />}{error && <p className="form-error">{error}</p>}<div className="modal-actions"><button type="button" className="outline-button" onClick={onClose}>Batal</button><button type="submit" className="primary-button" disabled={!name}>Simpan kategori</button></div></form></section></div>
+  const availableNames = category ? categoryNames : categoryNames.filter((name) => !usedNames.includes(name));
+  const [name, setName] = useState(category?.name ?? availableNames[0] ?? "");
+  const [exampleProducts, setExampleProducts] = useState(category?.example_products ?? "");
+  const [image, setImage] = useState<File | null>(null);
+  const [error, setError] = useState("");
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!name) {
+      setError("Semua nama kategori yang tersedia sudah digunakan.");
+      return;
+    }
+    try {
+      const body = new FormData();
+      body.append("name", name);
+      body.append("example_products", exampleProducts);
+      if (image) body.append("image", image);
+      if (category) body.append("_method", "PATCH");
+      const result = await apiRequest<{ data: { category: ProductCategory } }>(category ? `/admin/categories/${category.id}` : "/admin/categories", { method: "POST", body });
+      onSaved(result.data.category);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Kategori gagal disimpan.");
+    }
+  };
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="modal category-modal" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+        <div className="modal-heading">
+          <div>
+            <p className="eyebrow">Category</p>
+            <h2 id="category-modal-title">{category ? "Edit kategori" : "Tambah kategori"}</h2>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Tutup">
+            ×
+          </button>
+        </div>
+        <form className="product-form" onSubmit={(event) => void submit(event)}>
+          <SelectField label="Nama kategori" value={name} options={availableNames} onChange={setName} />
+          <label>
+            Contoh produk
+            <textarea required rows={4} value={exampleProducts} onChange={(event) => setExampleProducts(event.target.value)} placeholder="Nerona, Flavia, Joane." />
+          </label>
+          <label>
+            Gambar kategori
+            <input required={!category} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => setImage(event.target.files?.[0] ?? null)} />
+            <small>{category ? "Pilih gambar baru hanya jika ingin mengganti. Maksimal 5 MB." : "Wajib, satu gambar maksimal 5 MB."}</small>
+          </label>
+          {category?.image && !image && <img src={category.image} alt="Gambar kategori saat ini" className="category-form-image" />}
+          {error && <p className="form-error">{error}</p>}
+          <div className="modal-actions">
+            <button type="button" className="outline-button" onClick={onClose}>
+              Batal
+            </button>
+            <button type="submit" className="primary-button" disabled={!name}>
+              Simpan kategori
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
 }
 
 function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]); const [query, setQuery] = useState(''); const [loading, setLoading] = useState(true); const [error, setError] = useState('')
-  useEffect(() => { void apiRequest<{ data: Customer[] }>('/users').then((result) => setCustomers(result.data)).catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Tidak dapat memuat customer.')).finally(() => setLoading(false)) }, [])
-  const filtered = customers.filter((customer) => `${customer.name} ${customer.whatsapp}`.toLowerCase().includes(query.toLowerCase()))
-  return <><div className="page-heading"><div><p className="eyebrow">Customer directory</p><h1>Users / Customer</h1><p className="muted">Lihat customer yang terdaftar melalui API Crousel.</p></div><span className="count-badge">{customers.length} customer</span></div><section className="panel table-panel"><div className="table-toolbar"><div className="search-field"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama atau WhatsApp..." /></div></div>{error && <div className="api-error">{error} <small>Endpoint customer membutuhkan akses API Bearer.</small></div>}{loading ? <Loading /> : filtered.length ? <div className="table-scroll"><table><thead><tr><th>Customer</th><th>WhatsApp</th><th>Provinsi</th><th>Terdaftar</th><th>Status</th></tr></thead><tbody>{filtered.map((customer) => <tr key={customer.id}><td><div className="customer-cell"><span className="customer-avatar">{customer.name.charAt(0).toUpperCase()}</span><strong>{customer.name}</strong></div></td><td>{customer.whatsapp}</td><td>{customer.province ?? '—'}</td><td>{new Date(customer.created_at).toLocaleDateString('id-ID')}</td><td><span className="availability available">Aktif</span></td></tr>)}</tbody></table></div> : <EmptyState message="Belum ada customer yang tersimpan." />}</section></>
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void apiRequest<{ data: Customer[] }>("/users")
+      .then((result) => setCustomers(result.data))
+      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Tidak dapat memuat customer."))
+      .finally(() => setLoading(false));
+  }, []);
+  const filtered = customers.filter((customer) => `${customer.name} ${customer.whatsapp}`.toLowerCase().includes(query.toLowerCase()));
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Customer directory</p>
+          <h1>Users / Customer</h1>
+          <p className="muted">Lihat customer yang terdaftar melalui API Crousel.</p>
+        </div>
+        <span className="count-badge">{customers.length} customer</span>
+      </div>
+      <section className="panel table-panel">
+        <div className="table-toolbar">
+          <div className="search-field">
+            <span>⌕</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama atau WhatsApp..." />
+          </div>
+        </div>
+        {error && (
+          <div className="api-error">
+            {error} <small>Endpoint customer membutuhkan akses API Bearer.</small>
+          </div>
+        )}
+        {loading ? (
+          <Loading />
+        ) : filtered.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>WhatsApp</th>
+                  <th>Provinsi</th>
+                  <th>Terdaftar</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((customer) => (
+                  <tr key={customer.id}>
+                    <td>
+                      <div className="customer-cell">
+                        <span className="customer-avatar">{customer.name.charAt(0).toUpperCase()}</span>
+                        <strong>{customer.name}</strong>
+                      </div>
+                    </td>
+                    <td>{customer.whatsapp}</td>
+                    <td>{customer.province ?? "—"}</td>
+                    <td>{new Date(customer.created_at).toLocaleDateString("id-ID")}</td>
+                    <td>
+                      <span className="availability available">Aktif</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState message="Belum ada customer yang tersimpan." />
+        )}
+      </section>
+    </>
+  );
 }
 
-type SettingsTab = 'profile' | 'shipping' | 'payments' | 'notifications' | 'account' | 'customization'
+type SettingsTab = "profile" | "shipping" | "payments" | "notifications" | "account" | "customization";
 
 function SettingsPage() {
-  const [tab, setTab] = useState<SettingsTab>('profile'); const [profile, setProfile] = useState<StoreProfile | null>(null); const [shipping, setShipping] = useState<ShippingMethod[]>([]); const [payments, setPayments] = useState<PaymentMethod[]>([]); const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ new_customer: true, new_order: true }); const [loading, setLoading] = useState(true); const [message, setMessage] = useState('')
-  const [accountState, setAccountState] = useState<AdminAccount>({ id: 0, name: '', username: '', phone: '', email: '', role: 'admin', is_active: true })
-  useEffect(() => { void Promise.all([apiRequest<{ data: { profile: StoreProfile; shipping: ShippingMethod[]; payments: PaymentMethod[]; notifications: NotificationSettings } }>('/settings'), apiRequest<{ data: { admin: AdminAccount } }>('/admin/account')]).then(([settings, account]) => { setProfile(settings.data.profile); setShipping(settings.data.shipping); setPayments(settings.data.payments); setNotificationSettings(settings.data.notifications); setAccountState(account.data.admin) }).catch((error) => setMessage(error instanceof Error ? error.message : 'Pengaturan gagal dimuat.')).finally(() => setLoading(false)) }, [])
-  if (loading || !profile) return <Loading />
-  return <><div className="page-heading"><div><p className="eyebrow">Store configuration</p><h1>Pengaturan</h1><p className="muted">Atur identitas toko, layanan checkout, notifikasi, dan akun admin.</p></div></div>{message && <div className="api-success">{message}</div>}<SettingsLayout activeTab={tab} onTabChange={setTab} profile={profile}>{tab === 'profile' && <ProfileContent profile={profile} onSaved={(next) => setProfile(next)} onMessage={setMessage} />}{tab === 'shipping' && <SettingsList title="Pengiriman RajaOngkir" description="Aktifkan jasa kirim yang tersedia dari konfigurasi RajaOngkir toko." items={shipping} onToggle={async (item) => { const result = await apiRequest<{ data: { shipping: ShippingMethod } }>(`/settings/shipping/${item.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !item.is_active }) }); setShipping((items) => items.map((current) => current.id === item.id ? result.data.shipping : current)) }} />}{tab === 'payments' && <SettingsList title="Metode pembayaran Midtrans" description="Aktifkan kanal pembayaran yang tersedia di checkout." items={payments} onToggle={async (item) => { const result = await apiRequest<{ data: { payment: PaymentMethod } }>(`/settings/payments/${item.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !item.is_active }) }); setPayments((items) => items.map((current) => current.id === item.id ? result.data.payment : current)) }} />}{tab === 'notifications' && <NotificationContent settings={notificationSettings} onChange={setNotificationSettings} onMessage={setMessage} />}{tab === 'account' && <AccountContent account={accountState} onAccountChange={setAccountState} onMessage={setMessage} />}{tab === 'customization' && <CustomizationContent onMessage={setMessage} />}</SettingsLayout></>
+  const [tab, setTab] = useState<SettingsTab>("profile");
+  const [profile, setProfile] = useState<StoreProfile | null>(null);
+  const [shipping, setShipping] = useState<ShippingMethod[]>([]);
+  const [payments, setPayments] = useState<PaymentMethod[]>([]);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ new_customer: true, new_order: true });
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [accountState, setAccountState] = useState<AdminAccount>({
+    id: 0,
+    name: "",
+    username: "",
+    phone: "",
+    email: "",
+    role: "admin",
+    is_active: true,
+  });
+  useEffect(() => {
+    void Promise.all([
+      apiRequest<{
+        data: {
+          profile: StoreProfile;
+          shipping: ShippingMethod[];
+          payments: PaymentMethod[];
+          notifications: NotificationSettings;
+        };
+      }>("/settings"),
+      apiRequest<{ data: { admin: AdminAccount } }>("/admin/account"),
+    ])
+      .then(([settings, account]) => {
+        setProfile(settings.data.profile);
+        setShipping(settings.data.shipping);
+        setPayments(settings.data.payments);
+        setNotificationSettings(settings.data.notifications);
+        setAccountState(account.data.admin);
+      })
+      .catch((error) => setMessage(error instanceof Error ? error.message : "Pengaturan gagal dimuat."))
+      .finally(() => setLoading(false));
+  }, []);
+  if (loading || !profile) return <Loading />;
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Store configuration</p>
+          <h1>Pengaturan</h1>
+          <p className="muted">Atur identitas toko, layanan checkout, notifikasi, dan akun admin.</p>
+        </div>
+      </div>
+      {message && <div className="api-success">{message}</div>}
+      <SettingsLayout activeTab={tab} onTabChange={setTab} profile={profile}>
+        {tab === "profile" && <ProfileContent profile={profile} onSaved={(next) => setProfile(next)} onMessage={setMessage} />}
+        {tab === "shipping" && (
+          <SettingsList
+            title="Pengiriman RajaOngkir"
+            description="Aktifkan jasa kirim yang tersedia dari konfigurasi RajaOngkir toko."
+            items={shipping}
+            onToggle={async (item) => {
+              const result = await apiRequest<{
+                data: { shipping: ShippingMethod };
+              }>(`/settings/shipping/${item.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({ is_active: !item.is_active }),
+              });
+              setShipping((items) => items.map((current) => (current.id === item.id ? result.data.shipping : current)));
+            }}
+          />
+        )}
+        {tab === "payments" && (
+          <SettingsList
+            title="Metode pembayaran Midtrans"
+            description="Aktifkan kanal pembayaran yang tersedia di checkout."
+            items={payments}
+            onToggle={async (item) => {
+              const result = await apiRequest<{
+                data: { payment: PaymentMethod };
+              }>(`/settings/payments/${item.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({ is_active: !item.is_active }),
+              });
+              setPayments((items) => items.map((current) => (current.id === item.id ? result.data.payment : current)));
+            }}
+          />
+        )}
+        {tab === "notifications" && <NotificationContent settings={notificationSettings} onChange={setNotificationSettings} onMessage={setMessage} />}
+        {tab === "account" && <AccountContent account={accountState} onAccountChange={setAccountState} onMessage={setMessage} />}
+        {tab === "customization" && <CustomizationContent onMessage={setMessage} />}
+      </SettingsLayout>
+    </>
+  );
 }
 
-function SettingsLayout({ activeTab, onTabChange, profile, children }: { activeTab: SettingsTab; onTabChange: (tab: SettingsTab) => void; profile: StoreProfile; children: React.ReactNode }) { const tabs: Array<[SettingsTab, string]> = [['profile', 'Profil toko'], ['shipping', 'Pengiriman'], ['payments', 'Pembayaran'], ['notifications', 'Notifikasi'], ['account', 'Akun admin'], ['customization', 'Kustomisasi']]; return <><nav className="settings-pill-nav">{tabs.map(([key, label]) => <button key={key} className={activeTab === key ? 'active' : ''} onClick={() => onTabChange(key)}>{label}</button>)}</nav><div className="settings-content-grid"><section className="panel settings-main-panel">{children}</section><aside className="panel store-summary"><h2>Ringkasan toko</h2><SummaryItem label="Toko" value={profile.store_name || 'Belum diatur'} /><SummaryItem label="Lokasi" value={[profile.regency, profile.province].filter(Boolean).join(', ') || 'Belum diatur'} /><SummaryItem label="WhatsApp" value={profile.whatsapp || 'Belum diatur'} /><SummaryItem label="Zona waktu" value="WIB (GMT+7)" /></aside></div></> }
-function SummaryItem({ label, value }: { label: string; value: string }) { return <div className="summary-item"><small>{label}</small><strong>{value}</strong></div> }
-function ProfileContent({ profile, onSaved, onMessage }: { profile: StoreProfile; onSaved: (profile: StoreProfile) => void; onMessage: (message: string) => void }) { const [form, setForm] = useState(profile); const update = (key: keyof StoreProfile, value: string) => setForm((current) => ({ ...current, [key]: value })); const save = async (event: FormEvent) => { event.preventDefault(); try { const result = await apiRequest<{ data: { profile: StoreProfile } }>('/settings/profile', { method: 'PUT', body: JSON.stringify(form) }); onSaved(result.data.profile); onMessage('Profil toko berhasil disimpan.') } catch (error) { onMessage(error instanceof Error ? error.message : 'Profil gagal disimpan.') } }; return <form className="product-form settings-form" onSubmit={(event) => void save(event)}><h2>Profil toko</h2><div className="form-grid"><Field label="Nama toko" value={form.store_name} onChange={(value) => update('store_name', value)} required /><Field label="Email toko" value={form.store_email} onChange={(value) => update('store_email', value)} required /><Field label="Nomor WhatsApp" value={form.whatsapp} onChange={(value) => update('whatsapp', value)} required /><Field label="Kode pos" value={form.postal_code} onChange={(value) => update('postal_code', value)} required /><Field label="Provinsi" value={form.province} onChange={(value) => update('province', value)} required /><Field label="Kota/Kabupaten" value={form.regency} onChange={(value) => update('regency', value)} required /><Field label="Kecamatan" value={form.district} onChange={(value) => update('district', value)} required /><Field label="Kelurahan/Desa" value={form.village} onChange={(value) => update('village', value)} required /></div><label>Alamat lengkap<textarea required rows={3} value={form.address} onChange={(event) => update('address', event.target.value)} /></label><Field label="Patokan lokasi (opsional)" value={form.location_landmark ?? ''} onChange={(value) => update('location_landmark', value)} /><button className="primary-button" type="submit">Simpan profil</button></form> }
-function NotificationContent({ settings, onChange, onMessage }: { settings: NotificationSettings; onChange: (settings: NotificationSettings) => void; onMessage: (message: string) => void }) { const save = async () => { await apiRequest('/settings/notifications', { method: 'PUT', body: JSON.stringify(settings) }); onMessage('Preferensi notifikasi berhasil disimpan.') }; return <div className="notification-settings settings-form"><h2>Notifikasi lonceng</h2><p className="muted">Atur aktivitas yang tampil pada lonceng admin.</p><ToggleRow label="Pelanggan baru" description="Tampil saat pelanggan menyelesaikan pendaftaran" active={settings.new_customer} onToggle={() => onChange({ ...settings, new_customer: !settings.new_customer })} /><ToggleRow label="Pesanan baru" description="Tampil saat pelanggan membuat pesanan" active={settings.new_order} onToggle={() => onChange({ ...settings, new_order: !settings.new_order })} /><button className="primary-button" onClick={() => void save()}>Simpan preferensi</button></div> }
-function AccountContent({ account, onAccountChange, onMessage }: { account: AdminAccount; onAccountChange: (account: AdminAccount) => void; onMessage: (message: string) => void }) { const [password, setPassword] = useState(''); const save = async (event: FormEvent) => { event.preventDefault(); try { const result = await apiRequest<{ data: { admin: AdminAccount } }>('/admin/account', { method: 'PUT', body: JSON.stringify(account) }); onAccountChange(result.data.admin); onMessage('Detail akun berhasil disimpan.') } catch (error) { onMessage(error instanceof Error ? error.message : 'Akun gagal disimpan.') } }; const changePassword = async (event: FormEvent) => { event.preventDefault(); if (!password.trim()) { onMessage('Password tidak diubah.'); return } try { await apiRequest('/admin/account/password', { method: 'PUT', body: JSON.stringify({ password }) }); setPassword(''); onMessage('Password berhasil diubah.') } catch (error) { onMessage(error instanceof Error ? error.message : 'Password gagal diubah.') } }; return <div className="settings-form"><h2>Akun admin</h2><p className="muted">Kelola identitas dan keamanan akun administrator.</p><form className="product-form" onSubmit={(event) => void save(event)}><div className="form-grid"><Field label="Nama" value={account.name} onChange={(value) => onAccountChange({ ...account, name: value })} required /><Field label="Username" value={account.username} onChange={(value) => onAccountChange({ ...account, username: value })} required /><Field label="Nomor telepon" value={account.phone ?? ''} onChange={(value) => onAccountChange({ ...account, phone: value })} /><Field label="Email" value={account.email} onChange={(value) => onAccountChange({ ...account, email: value })} required /></div><button className="primary-button" type="submit">Simpan akun</button></form><form className="product-form password-form" onSubmit={(event) => void changePassword(event)}><h3>Password</h3><p className="muted">Kosongkan jika tidak ingin mengubah password.</p><Field label="Ubah password" value={password} onChange={setPassword} /><button className="outline-button" type="submit">Simpan password</button></form></div> }
+function SettingsLayout({ activeTab, onTabChange, profile, children }: { activeTab: SettingsTab; onTabChange: (tab: SettingsTab) => void; profile: StoreProfile; children: React.ReactNode }) {
+  const tabs: Array<[SettingsTab, string]> = [
+    ["profile", "Profil toko"],
+    ["shipping", "Pengiriman"],
+    ["payments", "Pembayaran"],
+    ["notifications", "Notifikasi"],
+    ["account", "Akun admin"],
+    ["customization", "Kustomisasi"],
+  ];
+  return (
+    <>
+      <nav className="settings-pill-nav">
+        {tabs.map(([key, label]) => (
+          <button key={key} className={activeTab === key ? "active" : ""} onClick={() => onTabChange(key)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+      <div className="settings-content-grid">
+        <section className="panel settings-main-panel">{children}</section>
+        <aside className="panel store-summary">
+          <h2>Ringkasan toko</h2>
+          <SummaryItem label="Toko" value={profile.store_name || "Belum diatur"} />
+          <SummaryItem label="Lokasi" value={[profile.regency, profile.province].filter(Boolean).join(", ") || "Belum diatur"} />
+          <SummaryItem label="WhatsApp" value={profile.whatsapp || "Belum diatur"} />
+          <SummaryItem label="Zona waktu" value="WIB (GMT+7)" />
+        </aside>
+      </div>
+    </>
+  );
+}
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="summary-item">
+      <small>{label}</small>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+function ProfileContent({ profile, onSaved, onMessage }: { profile: StoreProfile; onSaved: (profile: StoreProfile) => void; onMessage: (message: string) => void }) {
+  const [form, setForm] = useState(profile);
+  const update = (key: keyof StoreProfile, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      const result = await apiRequest<{ data: { profile: StoreProfile } }>("/settings/profile", { method: "PUT", body: JSON.stringify(form) });
+      onSaved(result.data.profile);
+      onMessage("Profil toko berhasil disimpan.");
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : "Profil gagal disimpan.");
+    }
+  };
+  return (
+    <form className="product-form settings-form" onSubmit={(event) => void save(event)}>
+      <h2>Profil toko</h2>
+      <div className="form-grid">
+        <Field label="Nama toko" value={form.store_name} onChange={(value) => update("store_name", value)} required />
+        <Field label="Email toko" value={form.store_email} onChange={(value) => update("store_email", value)} required />
+        <Field label="Nomor WhatsApp" value={form.whatsapp} onChange={(value) => update("whatsapp", value)} required />
+        <Field label="Kode pos" value={form.postal_code} onChange={(value) => update("postal_code", value)} required />
+        <Field label="Provinsi" value={form.province} onChange={(value) => update("province", value)} required />
+        <Field label="Kota/Kabupaten" value={form.regency} onChange={(value) => update("regency", value)} required />
+        <Field label="Kecamatan" value={form.district} onChange={(value) => update("district", value)} required />
+        <Field label="Kelurahan/Desa" value={form.village} onChange={(value) => update("village", value)} required />
+      </div>
+      <label>
+        Alamat lengkap
+        <textarea required rows={3} value={form.address} onChange={(event) => update("address", event.target.value)} />
+      </label>
+      <Field label="Patokan lokasi (opsional)" value={form.location_landmark ?? ""} onChange={(value) => update("location_landmark", value)} />
+      <button className="primary-button" type="submit">
+        Simpan profil
+      </button>
+    </form>
+  );
+}
+function NotificationContent({ settings, onChange, onMessage }: { settings: NotificationSettings; onChange: (settings: NotificationSettings) => void; onMessage: (message: string) => void }) {
+  const save = async () => {
+    await apiRequest("/settings/notifications", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    });
+    onMessage("Preferensi notifikasi berhasil disimpan.");
+  };
+  return (
+    <div className="notification-settings settings-form">
+      <h2>Notifikasi lonceng</h2>
+      <p className="muted">Atur aktivitas yang tampil pada lonceng admin.</p>
+      <ToggleRow label="Pelanggan baru" description="Tampil saat pelanggan menyelesaikan pendaftaran" active={settings.new_customer} onToggle={() => onChange({ ...settings, new_customer: !settings.new_customer })} />
+      <ToggleRow label="Pesanan baru" description="Tampil saat pelanggan membuat pesanan" active={settings.new_order} onToggle={() => onChange({ ...settings, new_order: !settings.new_order })} />
+      <button className="primary-button" onClick={() => void save()}>
+        Simpan preferensi
+      </button>
+    </div>
+  );
+}
+function AccountContent({ account, onAccountChange, onMessage }: { account: AdminAccount; onAccountChange: (account: AdminAccount) => void; onMessage: (message: string) => void }) {
+  const [password, setPassword] = useState("");
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      const result = await apiRequest<{ data: { admin: AdminAccount } }>("/admin/account", { method: "PUT", body: JSON.stringify(account) });
+      onAccountChange(result.data.admin);
+      onMessage("Detail akun berhasil disimpan.");
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : "Akun gagal disimpan.");
+    }
+  };
+  const changePassword = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!password.trim()) {
+      onMessage("Password tidak diubah.");
+      return;
+    }
+    try {
+      await apiRequest("/admin/account/password", {
+        method: "PUT",
+        body: JSON.stringify({ password }),
+      });
+      setPassword("");
+      onMessage("Password berhasil diubah.");
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : "Password gagal diubah.");
+    }
+  };
+  return (
+    <div className="settings-form">
+      <h2>Akun admin</h2>
+      <p className="muted">Kelola identitas dan keamanan akun administrator.</p>
+      <form className="product-form" onSubmit={(event) => void save(event)}>
+        <div className="form-grid">
+          <Field label="Nama" value={account.name} onChange={(value) => onAccountChange({ ...account, name: value })} required />
+          <Field label="Username" value={account.username} onChange={(value) => onAccountChange({ ...account, username: value })} required />
+          <Field label="Nomor telepon" value={account.phone ?? ""} onChange={(value) => onAccountChange({ ...account, phone: value })} />
+          <Field label="Email" value={account.email} onChange={(value) => onAccountChange({ ...account, email: value })} required />
+        </div>
+        <button className="primary-button" type="submit">
+          Simpan akun
+        </button>
+      </form>
+      <form className="product-form password-form" onSubmit={(event) => void changePassword(event)}>
+        <h3>Password</h3>
+        <p className="muted">Kosongkan jika tidak ingin mengubah password.</p>
+        <Field label="Ubah password" value={password} onChange={setPassword} />
+        <button className="outline-button" type="submit">
+          Simpan password
+        </button>
+      </form>
+    </div>
+  );
+}
 function CustomizationContent({ onMessage }: { onMessage: (message: string) => void }) {
-  const [color, setColor] = useState('#fbbc03')
-  const [loading, setLoading] = useState(true)
-  const [images, setImages] = useState<CustomizationData>({ secondary_color: '#fbbc03', hero_image: null, size_guide_image: null, about_image: null, story_images: [null, null, null, null, null] })
-  const [selectedImages, setSelectedImages] = useState<Record<string, File | null>>({})
-  const [previews, setPreviews] = useState<Record<string, string>>({})
-  const [storyFiles, setStoryFiles] = useState<Array<File | null>>([null, null, null, null, null])
-  const [storyPreviews, setStoryPreviews] = useState<string[]>([])
-  const DEFAULT_COLOR = '#fbbc03'
+  const [color, setColor] = useState("#fbbc03");
+  const [loading, setLoading] = useState(true);
+  const [images, setImages] = useState<CustomizationData>({
+    secondary_color: "#fbbc03",
+    hero_image: null,
+    size_guide_image: null,
+    about_image: null,
+    story_images: [null, null, null, null, null],
+  });
+  const [selectedImages, setSelectedImages] = useState<Record<string, File | null>>({});
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [storyFiles, setStoryFiles] = useState<Array<File | null>>([null, null, null, null, null]);
+  const [storyPreviews, setStoryPreviews] = useState<string[]>([]);
+  const [deletedImages, setDeletedImages] = useState<string[]>([]);
+  const DEFAULT_COLOR = "#fbbc03";
 
   useEffect(() => {
-    void apiRequest<{ data: CustomizationData }>('/settings/customization')
-      .then((result) => { setColor(result.data.secondary_color); setImages(result.data) })
+    void apiRequest<{ data: CustomizationData }>("/settings/customization")
+      .then((result) => {
+        setColor(result.data.secondary_color);
+        setImages(result.data);
+      })
       .catch(() => undefined)
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   const save = async () => {
     try {
-      const body = new FormData()
-      body.append('secondary_color', color)
-      Object.entries(selectedImages).forEach(([key, file]) => { if (file) body.append(key, file) })
-      if (storyFiles.every(Boolean)) storyFiles.forEach((file) => { if (file) body.append('story_images[]', file) })
-      const result = await apiRequest<{ data: CustomizationData }>('/admin/customization', { method: 'POST', body })
-      setImages(result.data); setSelectedImages({}); setStoryFiles([null, null, null, null, null]); setPreviews({}); setStoryPreviews([])
-      onMessage('Kustomisasi berhasil disimpan.')
+      const body = new FormData();
+      body.append("secondary_color", color);
+      deletedImages.forEach((key) => body.append(`delete_${key}`, "1"));
+      Object.entries(selectedImages).forEach(([key, file]) => {
+        if (file) body.append(key, file);
+      });
+      if (storyFiles.every(Boolean))
+        storyFiles.forEach((file) => {
+          if (file) body.append("story_images[]", file);
+        });
+      const result = await apiRequest<{ data: CustomizationData }>("/admin/customization", { method: "POST", body });
+      setImages(result.data);
+      setSelectedImages({});
+      setStoryFiles([null, null, null, null, null]);
+      setPreviews({});
+      setStoryPreviews([]);
+      setDeletedImages([]);
+      onMessage("Kustomisasi berhasil disimpan.");
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : 'Kustomisasi gagal disimpan.')
+      onMessage(error instanceof Error ? error.message : "Kustomisasi gagal disimpan.");
     }
-  }
+  };
 
-  const reset = () => setColor(DEFAULT_COLOR)
-  const selectImage = (key: string, file: File | undefined) => { if (!file) return; setSelectedImages((current) => ({ ...current, [key]: file })); setPreviews((current) => ({ ...current, [key]: URL.createObjectURL(file) })) }
-  const selectStoryImages = (files: FileList | null) => { const next = Array.from(files ?? []).slice(0, 5); if (!next.length) return; setStoryFiles(next.length === 5 ? next : [...next, ...Array(5 - next.length).fill(null)]); setStoryPreviews(next.map((file) => URL.createObjectURL(file))) }
-  const displayImage = (key: keyof Pick<CustomizationData, 'hero_image' | 'size_guide_image' | 'about_image'>) => previews[key] ?? images[key]
+  const reset = () => setColor(DEFAULT_COLOR);
+  const selectImage = (key: string, file: File | undefined) => {
+    if (!file) return;
+    setDeletedImages((items) => items.filter((item) => item !== key));
+    setSelectedImages((current) => ({ ...current, [key]: file }));
+    setPreviews((current) => ({
+      ...current,
+      [key]: URL.createObjectURL(file),
+    }));
+  };
+  const removeImage = (key: string) => {
+    setSelectedImages((current) => ({ ...current, [key]: null }));
+    setPreviews((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    setImages((current) => ({ ...current, [key]: null }));
+    setDeletedImages((items) => (items.includes(key) ? items : [...items, key]));
+  };
+  const selectStoryImages = (files: FileList | null) => {
+    const next = Array.from(files ?? []).slice(0, 5);
+    if (!next.length) return;
+    setStoryFiles(next.length === 5 ? next : [...next, ...Array(5 - next.length).fill(null)]);
+    setStoryPreviews(next.map((file) => URL.createObjectURL(file)));
+  };
+  const removeStoryImage = (index: number) => {
+    setStoryFiles((files) => files.map((file, current) => (current === index ? null : file)));
+    setStoryPreviews((items) => items.map((src, current) => (current === index ? "" : src)));
+    setImages((current) => ({ ...current, story_images: current.story_images.map((src, currentIndex) => (currentIndex === index ? null : src)) }));
+    const key = `story_image_${index + 1}`;
+    setDeletedImages((items) => (items.includes(key) ? items : [...items, key]));
+  };
+  const displayImage = (key: keyof Pick<CustomizationData, "hero_image" | "size_guide_image" | "about_image">) => previews[key] ?? images[key];
 
-  if (loading) return <Loading />
+  if (loading) return <Loading />;
 
   return (
     <div className="notification-settings settings-form">
       <p className="eyebrow">Appearance</p>
       <h2>Kustomisasi tampilan</h2>
       <p className="muted">Atur warna aksen (secondary) yang ditampilkan di halaman toko pelanggan.</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
-            <small style={{ fontWeight: 600, fontSize: '0.8rem', opacity: 0.7 }}>Pilih warna</small>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.25rem",
+          marginTop: "1rem",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <label
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.35rem",
+              flex: 1,
+            }}
+          >
+            <small style={{ fontWeight: 600, fontSize: "0.8rem", opacity: 0.7 }}>Pilih warna</small>
             <input
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              style={{ width: '100%', height: '48px', border: '1px solid var(--border, #e5e5e5)', borderRadius: '0.5rem', cursor: 'pointer', padding: '4px' }}
+              style={{
+                width: "100%",
+                height: "48px",
+                border: "1px solid var(--border, #e5e5e5)",
+                borderRadius: "0.5rem",
+                cursor: "pointer",
+                padding: "4px",
+              }}
             />
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '140px' }}>
-            <small style={{ fontWeight: 600, fontSize: '0.8rem', opacity: 0.7 }}>Kode hex</small>
+          <label
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.35rem",
+              width: "140px",
+            }}
+          >
+            <small style={{ fontWeight: 600, fontSize: "0.8rem", opacity: 0.7 }}>Kode hex</small>
             <input
               type="text"
               value={color}
-              onChange={(e) => { const v = e.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setColor(v) }}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setColor(v);
+              }}
               maxLength={7}
               placeholder="#fbbc03"
-              style={{ height: '48px', border: '1px solid var(--border, #e5e5e5)', borderRadius: '0.5rem', padding: '0 0.75rem', fontFamily: 'monospace', fontSize: '1rem', textAlign: 'center' }}
+              style={{
+                height: "48px",
+                border: "1px solid var(--border, #e5e5e5)",
+                borderRadius: "0.5rem",
+                padding: "0 0.75rem",
+                fontFamily: "monospace",
+                fontSize: "1rem",
+                textAlign: "center",
+              }}
             />
           </label>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--surface, #fafafa)', borderRadius: '0.75rem', border: '1px solid var(--border, #e5e5e5)' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: color, border: '3px solid rgba(0,0,0,0.08)', flexShrink: 0, transition: 'background 0.2s' }} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+            padding: "1rem",
+            background: "var(--surface, #fafafa)",
+            borderRadius: "0.75rem",
+            border: "1px solid var(--border, #e5e5e5)",
+          }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "50%",
+              background: color,
+              border: "3px solid rgba(0,0,0,0.08)",
+              flexShrink: 0,
+              transition: "background 0.2s",
+            }}
+          />
           <div>
-            <strong style={{ fontSize: '0.9rem' }}>Preview warna</strong>
-            <p style={{ fontSize: '0.8rem', opacity: 0.6, margin: '0.15rem 0 0' }}>Warna ini akan menjadi aksen utama di halaman toko pelanggan.</p>
+            <strong style={{ fontSize: "0.9rem" }}>Preview warna</strong>
+            <p
+              style={{
+                fontSize: "0.8rem",
+                opacity: 0.6,
+                margin: "0.15rem 0 0",
+              }}
+            >
+              Warna ini akan menjadi aksen utama di halaman toko pelanggan.
+            </p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="primary-button" onClick={() => void save()} disabled={!/^#[0-9a-fA-F]{6}$/.test(color)}>Simpan kustomisasi</button>
-          <button className="outline-button" type="button" onClick={reset}>Reset ke default</button>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button className="primary-button" onClick={() => void save()} disabled={!/^#[0-9a-fA-F]{6}$/.test(color)}>
+            Simpan kustomisasi
+          </button>
+          <button className="outline-button" type="button" onClick={reset}>
+            Reset ke default
+          </button>
         </div>
         <div className="customization-image-grid">
-          {([['hero_image', 'Gambar hero'], ['size_guide_image', 'Gambar panduan ukuran'], ['about_image', 'Gambar tentang kami']] as const).map(([key, label]) => <label className="customization-upload" key={key}>{label}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => selectImage(key, event.target.files?.[0])} /><small>JPG, PNG, WebP, GIF · maksimal 5 MB</small>{displayImage(key) && <img src={displayImage(key) ?? undefined} alt={`Preview ${label}`} />}</label>)}
-          <label className="customization-upload customization-upload-wide">Lima gambar cerita di setiap langkah<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={(event) => selectStoryImages(event.target.files)} /><small>Pilih tepat 5 gambar · maksimal 5 MB per file</small><div className="customization-story-previews">{(storyPreviews.length ? storyPreviews : images.story_images).map((src, index) => src && <img key={`${src}-${index}`} src={src} alt={`Preview cerita ${index + 1}`} />)}</div></label>
+          {(
+            [
+              ["hero_image", "Gambar hero"],
+              ["size_guide_image", "Gambar panduan ukuran"],
+              ["about_image", "Gambar tentang kami"],
+            ] as const
+          ).map(([key, label]) => (
+            <label className="customization-upload" key={key}>
+              {label}
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => selectImage(key, event.target.files?.[0])} />
+              <small>JPG, PNG, WebP, GIF · maksimal 5 MB</small>
+              {displayImage(key) && <div className="customization-preview-wrap"><img src={displayImage(key) ?? undefined} alt={`Preview ${label}`} /><button type="button" className="image-delete-btn visible" onClick={(event) => { event.preventDefault(); removeImage(key); }} aria-label={`Hapus ${label}`}>×</button></div>}
+            </label>
+          ))}
+          <label className="customization-upload customization-upload-wide">
+            Lima gambar cerita di setiap langkah
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={(event) => selectStoryImages(event.target.files)} />
+            <small>Pilih tepat 5 gambar · maksimal 5 MB per file</small>
+            <div className="customization-story-previews">{(storyPreviews.length ? storyPreviews : images.story_images).map((src, index) => src && <div className="customization-preview-wrap" key={`${src}-${index}`}><img src={src} alt={`Preview cerita ${index + 1}`} /><button type="button" className="image-delete-btn visible" onClick={(event) => { event.preventDefault(); removeStoryImage(index); }} aria-label={`Hapus gambar cerita ${index + 1}`}>×</button></div>)}</div>
+          </label>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function AccountPage() { return <section className="settings-layout account-layout"><div className="settings-tabs"><button onClick={() => { window.location.hash = 'settings' }}>Profil toko</button><button onClick={() => { window.location.hash = 'settings' }}>Pengiriman</button><button onClick={() => { window.location.hash = 'settings' }}>Pembayaran</button><button onClick={() => { window.location.hash = 'settings' }}>Notifikasi</button><button className="active">Akun admin <span aria-hidden="true">›</span></button></div><AccountFormPage /></section> }
+const orderStatuses: OrderStatus[] = ["Menunggu pembayaran", "Diproses", "Dikemas", "Dikirim", "Selesai", "Dibatalkan"];
+function readOrders(): AdminOrder[] {
+  try {
+    return JSON.parse(localStorage.getItem("crousel-orders") || "[]") as AdminOrder[];
+  } catch {
+    return [];
+  }
+}
+function OrderCards({ orders }: { orders: AdminOrder[] }) {
+  const cards: Array<[string, OrderStatus]> = [
+    ["Menunggu dibayar", "Menunggu pembayaran"],
+    ["Diproses", "Diproses"],
+    ["Dikirim", "Dikirim"],
+    ["Selesai", "Selesai"],
+    ["Dibatalkan", "Dibatalkan"],
+  ];
+  return (
+    <div className="order-stat-grid">
+      {cards.map(([label, status]) => (
+        <article className="home-stat" key={status}>
+          <p>{label}</p>
+          <strong>{orders.filter((o) => o.status === status).length}</strong>
+          <small>pesanan</small>
+        </article>
+      ))}
+    </div>
+  );
+}
+function OrdersPage() {
+  const [orders, setOrders] = useState<AdminOrder[]>(readOrders);
+  const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+  const refresh = () => {
+    void apiRequest<{ data: AdminOrder[] }>("/admin/orders")
+      .then((result) => setOrders(result.data))
+      .catch(() => setOrders(readOrders()));
+  };
+  useEffect(refresh, []);
+  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  return (
+    <div className="orders-admin-page">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Order management</p>
+          <h1>Pesanan</h1>
+          <p className="muted">Pantau dan filter seluruh pesanan pelanggan.</p>
+        </div>
+        <button className="outline-button" onClick={refresh}>
+          Refresh ↻
+        </button>
+      </div>
+      <OrderCards orders={orders} />
+      <section className="panel table-panel">
+        <div className="table-toolbar">
+          <div className="status-filters">
+            <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
+              Semua
+            </button>
+            {orderStatuses.map((status) => (
+              <button key={status} className={filter === status ? "active" : ""} onClick={() => setFilter(status)}>
+                {status.replace(" pembayaran", "")}
+              </button>
+            ))}
+          </div>
+          <button className="outline-button" onClick={refresh}>
+            Refresh
+          </button>
+        </div>
+        {filtered.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Pelanggan</th>
+                  <th>Tanggal</th>
+                  <th>Produk</th>
+                  <th>Item</th>
+                  <th>Pembayaran</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((order) => (
+                  <tr key={order.id}>
+                    <td>
+                      <strong>{order.id}</strong>
+                    </td>
+                    <td>{order.customer || "Pelanggan"}</td>
+                    <td>{order.date}</td>
+                    <td>{order.products || "-"}</td>
+                    <td>{order.items || 1}</td>
+                    <td>{order.payment || "-"}</td>
+                    <td className="price-cell">Rp {new Intl.NumberFormat("id-ID").format(order.total || 0)}</td>
+                    <td>
+                      <span className="availability available">{order.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState message="Belum ada pesanan." />
+        )}
+      </section>
+    </div>
+  );
+}
+function ShippingStatusPage() {
+  const [orders, setOrders] = useState<AdminOrder[]>(readOrders);
+  const [filter, setFilter] = useState<OrderStatus | "all">("all");
+  const refresh = () => {
+    void apiRequest<{ data: AdminOrder[] }>("/admin/orders")
+      .then((result) => setOrders(result.data))
+      .catch(() => setOrders(readOrders()));
+  };
+  useEffect(refresh, []);
+  const statuses: OrderStatus[] = ["Diproses", "Dikemas", "Dikirim", "Selesai"];
+  const shippingOrders = orders.filter((order) => statuses.includes(order.status));
+  const shown = filter === "all" ? shippingOrders : shippingOrders.filter((o) => o.status === filter);
+  return (
+    <div className="orders-admin-page">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Fulfillment</p>
+          <h1>Status barang</h1>
+          <p className="muted">Daftar status barang dalam proses pengiriman.</p>
+        </div>
+        <button className="outline-button" onClick={refresh}>
+          Refresh ↻
+        </button>
+      </div>
+      <div className="order-stat-grid">
+        {statuses.map((status) => (
+          <article className="home-stat" key={status}>
+            <p>{status}</p>
+            <strong>{orders.filter((o) => o.status === status).length}</strong>
+            <small>pesanan</small>
+          </article>
+        ))}
+      </div>
+      <section className="panel table-panel">
+        <div className="table-toolbar">
+          <div className="status-filters">
+            <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
+              Semua
+            </button>
+            {statuses.map((status) => (
+              <button key={status} className={filter === status ? "active" : ""} onClick={() => setFilter(status)}>
+                {status}
+              </button>
+            ))}
+          </div>
+          <button className="outline-button" onClick={refresh}>
+            Refresh
+          </button>
+        </div>
+        {shown.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produk</th>
+                  <th>ID pesanan</th>
+                  <th>Pelanggan</th>
+                  <th>Status</th>
+                  <th>Tanggal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((order) => (
+                  <tr key={order.id}>
+                    <td>{order.products || "-"}</td>
+                    <td>{order.id}</td>
+                    <td>{order.customer || "Pelanggan"}</td>
+                    <td>
+                      <span className="availability available">{order.status}</span>
+                    </td>
+                    <td>{order.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState message="Belum ada barang pada status ini." />
+        )}
+      </section>
+    </div>
+  );
+}
 
+function AccountPage() {
+  return (
+    <section className="settings-layout account-layout">
+      <div className="settings-tabs">
+        <button
+          onClick={() => {
+            window.location.hash = "settings";
+          }}
+        >
+          Profil toko
+        </button>
+        <button
+          onClick={() => {
+            window.location.hash = "settings";
+          }}
+        >
+          Pengiriman
+        </button>
+        <button
+          onClick={() => {
+            window.location.hash = "settings";
+          }}
+        >
+          Pembayaran
+        </button>
+        <button
+          onClick={() => {
+            window.location.hash = "settings";
+          }}
+        >
+          Notifikasi
+        </button>
+        <button className="active">Akun admin</button>
+      </div>
+      <AccountFormPage />
+    </section>
+  );
+}
 function AccountFormPage() {
-  const [account, setAccount] = useState<AdminAccount>({ id: 0, name: '', username: '', phone: '', email: '', role: 'admin', is_active: true }); const [newPassword, setNewPassword] = useState(''); const [message, setMessage] = useState('')
-  useEffect(() => { void apiRequest<{ data: { admin: AdminAccount } }>('/admin/account').then((result) => setAccount(result.data.admin)).catch((error) => setMessage(error instanceof Error ? error.message : 'Akun gagal dimuat.')) }, [])
-  const saveAccount = async (event: FormEvent) => { event.preventDefault(); try { const result = await apiRequest<{ data: { admin: AdminAccount } }>('/admin/account', { method: 'PUT', body: JSON.stringify(account) }); setAccount(result.data.admin); setMessage('Detail akun berhasil disimpan.') } catch (error) { setMessage(error instanceof Error ? error.message : 'Akun gagal disimpan.') } }
-  const savePassword = async (event: FormEvent) => { event.preventDefault(); if (!newPassword.trim()) { setMessage('Password dibiarkan tanpa perubahan.'); return } try { await apiRequest('/admin/account/password', { method: 'PUT', body: JSON.stringify({ password: newPassword }) }); setNewPassword(''); setMessage('Password berhasil diubah.') } catch (error) { setMessage(error instanceof Error ? error.message : 'Password gagal diubah.') } }
-  return <section className="panel account-panel"><div className="notification-settings"><p className="eyebrow">Admin account</p><h2>Akun admin</h2><p className="muted">Kelola identitas dan keamanan akun administrator.</p>{message && <div className="api-success">{message}</div>}<form className="product-form" onSubmit={(event) => void saveAccount(event)}><div className="form-grid"><Field label="Nama" value={account.name} onChange={(value) => setAccount((current) => ({ ...current, name: value }))} required /><Field label="Username" value={account.username} onChange={(value) => setAccount((current) => ({ ...current, username: value }))} required /><Field label="Nomor telepon" value={account.phone ?? ''} onChange={(value) => setAccount((current) => ({ ...current, phone: value }))} /><Field label="Email" value={account.email} onChange={(value) => setAccount((current) => ({ ...current, email: value }))} required /></div><button className="primary-button" type="submit">Simpan akun</button></form><form className="product-form password-form" onSubmit={(event) => void savePassword(event)}><h3>Password</h3><p className="muted">Kosongkan jika tidak ingin mengubah password.</p><Field label="Ubah password" value={newPassword} onChange={setNewPassword} /><button className="outline-button" type="submit">Simpan password</button></form></div></section>
+  const [account, setAccount] = useState<AdminAccount>({
+    id: 0,
+    name: "",
+    username: "",
+    phone: "",
+    email: "",
+    role: "admin",
+    is_active: true,
+  });
+  const [newPassword, setNewPassword] = useState("");
+  const [message, setMessage] = useState("");
+  useEffect(() => {
+    void apiRequest<{ data: { admin: AdminAccount } }>("/admin/account")
+      .then((result) => setAccount(result.data.admin))
+      .catch((error) => setMessage(error instanceof Error ? error.message : "Akun gagal dimuat."));
+  }, []);
+  const saveAccount = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      const result = await apiRequest<{ data: { admin: AdminAccount } }>("/admin/account", { method: "PUT", body: JSON.stringify(account) });
+      setAccount(result.data.admin);
+      setMessage("Detail akun berhasil disimpan.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Akun gagal disimpan.");
+    }
+  };
+  const savePassword = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!newPassword.trim()) {
+      setMessage("Password dibiarkan tanpa perubahan.");
+      return;
+    }
+    try {
+      await apiRequest("/admin/account/password", {
+        method: "PUT",
+        body: JSON.stringify({ password: newPassword }),
+      });
+      setNewPassword("");
+      setMessage("Password berhasil diubah.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Password gagal diubah.");
+    }
+  };
+  return (
+    <section className="panel account-panel">
+      <div className="notification-settings">
+        <p className="eyebrow">Admin account</p>
+        <h2>Akun admin</h2>
+        <p className="muted">Kelola identitas dan keamanan akun administrator.</p>
+        {message && <div className="api-success">{message}</div>}
+        <form className="product-form" onSubmit={(event) => void saveAccount(event)}>
+          <div className="form-grid">
+            <Field label="Nama" value={account.name} onChange={(value) => setAccount((current) => ({ ...current, name: value }))} required />
+            <Field label="Username" value={account.username} onChange={(value) => setAccount((current) => ({ ...current, username: value }))} required />
+            <Field label="Nomor telepon" value={account.phone ?? ""} onChange={(value) => setAccount((current) => ({ ...current, phone: value }))} />
+            <Field label="Email" value={account.email} onChange={(value) => setAccount((current) => ({ ...current, email: value }))} required />
+          </div>
+          <button className="primary-button" type="submit">
+            Simpan akun
+          </button>
+        </form>
+        <form className="product-form password-form" onSubmit={(event) => void savePassword(event)}>
+          <h3>Password</h3>
+          <p className="muted">Kosongkan jika tidak ingin mengubah password.</p>
+          <Field label="Ubah password" value={newPassword} onChange={setNewPassword} />
+          <button className="outline-button" type="submit">
+            Simpan password
+          </button>
+        </form>
+      </div>
+    </section>
+  );
 }
 
-function SettingsList({ title, description, items, onToggle }: { title: string; description: string; items: Array<ShippingMethod | PaymentMethod>; onToggle: (item: ShippingMethod | PaymentMethod) => void }) { return <div className="notification-settings"><p className="eyebrow">Configuration</p><h2>{title}</h2><p className="muted">{description}</p><div className="settings-list">{items.map((item) => <ToggleRow key={item.id} label={item.name} description={'type' in item ? item.type : item.provider ?? 'RajaOngkir'} active={item.is_active} onToggle={() => onToggle(item)} />)}</div></div> }
-function ToggleRow({ label, description, active, onToggle }: { label: string; description: string; active: boolean; onToggle: () => void }) { return <div className="toggle-row"><div><strong>{label}</strong><small>{description}</small></div><button className={`switch ${active ? 'on' : ''}`} onClick={onToggle} role="switch" aria-checked={active}><span /></button></div> }
+function SettingsList({ title, description, items, onToggle }: { title: string; description: string; items: Array<ShippingMethod | PaymentMethod>; onToggle: (item: ShippingMethod | PaymentMethod) => void }) {
+  return (
+    <div className="notification-settings">
+      <p className="eyebrow">Configuration</p>
+      <h2>{title}</h2>
+      <p className="muted">{description}</p>
+      <div className="settings-list">
+        {items.map((item) => (
+          <ToggleRow key={item.id} label={item.name} description={"type" in item ? item.type : (item.provider ?? "RajaOngkir")} active={item.is_active} onToggle={() => onToggle(item)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+function ToggleRow({ label, description, active, onToggle }: { label: string; description: string; active: boolean; onToggle: () => void }) {
+  return (
+    <div className="toggle-row">
+      <div>
+        <strong>{label}</strong>
+        <small>{description}</small>
+      </div>
+      <button className={`switch ${active ? "on" : ""}`} onClick={onToggle} role="switch" aria-checked={active}>
+        <span />
+      </button>
+    </div>
+  );
+}
 
 function ProductModal({ product, onClose, onSaved }: { product: Product | null; onClose: () => void; onSaved: (product: Product) => void }) {
-  const [form, setForm] = useState<ProductForm>(product ? { ...product, availableColors: product.availableColors ?? [], images: [], existingImages: product.images ?? [], deletedImages: [], features: product.features ?? [], availableSizes: product.availableSizes ?? [] } : emptyProduct)
-  const [error, setError] = useState('')
-  const [previewUrls, setPreviewUrls] = useState<string[]>([])
-  const [featureText, setFeatureText] = useState(() => (product?.features ?? []).join(', '))
-  const [availableSizesText, setAvailableSizesText] = useState(() => (product?.availableSizes ?? []).join(', '))
-  const update = <K extends keyof ProductForm>(key: K, value: ProductForm[K]) => setForm((current) => ({ ...current, [key]: value }))
-  const text = (key: keyof ProductForm) => Array.isArray(form[key]) ? (form[key] as string[]).join(', ') : String(form[key] ?? '')
-  const parseList = (value: string) => value.split(',').map((item) => item.trim()).filter(Boolean)
+  const [form, setForm] = useState<ProductForm>(
+    product
+      ? {
+          ...product,
+          availableColors: product.availableColors ?? [],
+          images: [],
+          existingImages: product.images ?? [],
+          deletedImages: [],
+          features: product.features ?? [],
+          availableSizes: product.availableSizes ?? [],
+        }
+      : emptyProduct,
+  );
+  const [error, setError] = useState("");
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [featureText, setFeatureText] = useState(() => (product?.features ?? []).join(", "));
+  const [availableSizesText, setAvailableSizesText] = useState(() => (product?.availableSizes ?? []).join(", "));
+  const update = <K extends keyof ProductForm>(key: K, value: ProductForm[K]) => setForm((current) => ({ ...current, [key]: value }));
+  const text = (key: keyof ProductForm) => (Array.isArray(form[key]) ? (form[key] as string[]).join(", ") : String(form[key] ?? ""));
+  const parseList = (value: string) =>
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
 
-  const handleNameChange = (value: string) => { update('name', value); update('slug', slugify(value)) }
-  const parsedColors = form.color.split(',').map((c) => c.trim()).filter(Boolean)
+  const handleNameChange = (value: string) => {
+    update("name", value);
+    update("slug", slugify(value));
+  };
+  const parsedColors = form.color
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
   const toggleColor = (color: string) => {
-    const current = form.availableColors.map((c) => c.trim())
-    if (current.includes(color)) { update('availableColors', current.filter((c) => c !== color)) } else { update('availableColors', [...current, color]) }
-  }
+    const current = form.availableColors.map((c) => c.trim());
+    if (current.includes(color)) {
+      update(
+        "availableColors",
+        current.filter((c) => c !== color),
+      );
+    } else {
+      update("availableColors", [...current, color]);
+    }
+  };
 
   const handleImageChange = (files: FileList | null) => {
-    const newFiles = Array.from(files ?? [])
-    update('images', [...form.images, ...newFiles])
-    setPreviewUrls([...previewUrls, ...newFiles.map((file) => URL.createObjectURL(file))])
-  }
+    const newFiles = Array.from(files ?? []);
+    update("images", [...form.images, ...newFiles]);
+    setPreviewUrls([...previewUrls, ...newFiles.map((file) => URL.createObjectURL(file))]);
+  };
 
   const removeExistingImage = (index: number) => {
     const url = form.existingImages[index];
-    update('existingImages', form.existingImages.filter((_, i) => i !== index));
-    update('deletedImages', [...form.deletedImages, url]);
-  }
+    update(
+      "existingImages",
+      form.existingImages.filter((_, i) => i !== index),
+    );
+    update("deletedImages", [...form.deletedImages, url]);
+  };
 
   const removeNewImage = (index: number) => {
     URL.revokeObjectURL(previewUrls[index]);
     setPreviewUrls(previewUrls.filter((_, i) => i !== index));
-    update('images', form.images.filter((_, i) => i !== index));
-  }
+    update(
+      "images",
+      form.images.filter((_, i) => i !== index),
+    );
+  };
 
   const submit = async (event: FormEvent) => {
-    event.preventDefault(); setError('')
+    event.preventDefault();
+    setError("");
     if (form.existingImages.length === 0 && form.images.length === 0) {
-      setError('Produk harus memiliki setidaknya 1 gambar.'); return
+      setError("Produk harus memiliki setidaknya 1 gambar.");
+      return;
     }
-    const body = new FormData()
-    if (product) body.append('_method', 'PATCH')
-    const arrays: (keyof ProductForm)[] = ['availableColors', 'features', 'availableSizes']
-    arrays.forEach((key) => text(key).split(',').map((item) => item.trim()).filter(Boolean).forEach((item) => body.append(`${key}[]`, item)))
-    const skipKeys: (keyof ProductForm)[] = [...arrays, 'images', 'existingImages', 'deletedImages']
-    ;(Object.keys(form) as (keyof ProductForm)[]).filter((key) => !skipKeys.includes(key) && form[key] !== null && form[key] !== undefined).forEach((key) => body.append(key, String(form[key])))
-    form.images.forEach((image) => body.append('images[]', image))
-    form.deletedImages.forEach((url) => body.append('deletedImages[]', url))
-    try { const result = await apiRequest<{ data: { product: Product } }>(product ? `/products/${product.id}` : '/products', { method: 'POST', body }); onSaved(result.data.product) } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Produk gagal disimpan.') }
-  }
+    const body = new FormData();
+    if (product) body.append("_method", "PATCH");
+    const arrays: (keyof ProductForm)[] = ["availableColors", "features", "availableSizes"];
+    arrays.forEach((key) =>
+      text(key)
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .forEach((item) => body.append(`${key}[]`, item)),
+    );
+    const skipKeys: (keyof ProductForm)[] = [...arrays, "images", "existingImages", "deletedImages"];
+    (Object.keys(form) as (keyof ProductForm)[]).filter((key) => !skipKeys.includes(key) && form[key] !== null && form[key] !== undefined).forEach((key) => body.append(key, String(form[key])));
+    form.images.forEach((image) => body.append("images[]", image));
+    form.deletedImages.forEach((url) => body.append("deletedImages[]", url));
+    try {
+      const result = await apiRequest<{ data: { product: Product } }>(product ? `/products/${product.id}` : "/products", { method: "POST", body });
+      onSaved(result.data.product);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Produk gagal disimpan.");
+    }
+  };
 
-  return <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="product-modal-title"><div className="modal-heading"><div><p className="eyebrow">Catalog</p><h2 id="product-modal-title">{product ? 'Edit produk' : 'Tambah produk'}</h2></div><button className="icon-button" onClick={onClose} aria-label="Tutup">×</button></div><form onSubmit={(e) => void submit(e)} className="product-form">
-    <div className="form-grid">
-      <Field label="Nama produk" value={form.name} onChange={handleNameChange} required />
-      <Field label="Slug" value={form.slug} onChange={(value) => update('slug', value)} required />
-      <SelectField label="Kategori" value={form.category} options={['Slide', 'Slop', 'Wedges']} onChange={(value) => update('category', value)} />
-      <Field label="Harga" value={form.price} onChange={(value) => {
-        const numbers = value.replace(/\D/g, '')
-        if (!numbers) return update('price', '')
-        update('price', 'Rp' + new Intl.NumberFormat('id-ID').format(Number(numbers)))
-      }} required />
-      <SelectField label="Target" value={form.target} options={['Women', 'Men', 'Unisex', 'Kids']} onChange={(value) => update('target', value)} />
-      <SelectField label="Availability" value={form.availability} options={['Tersedia', 'Pre-order', 'Habis']} onChange={(value) => update('availability', value)} />
-      <Field label="Warna (pisahkan koma jika lebih dari satu)" value={form.color} onChange={(value) => { update('color', value); const colors = value.split(',').map((c) => c.trim()).filter(Boolean); update('availableColors', colors) }} required />
-      <label className="color-toggle-field">Warna Tersedia{parsedColors.length > 0 ? <div className="color-toggle-list">{parsedColors.map((color) => <button type="button" key={color} className={`color-toggle-chip ${form.availableColors.map((c) => c.trim()).includes(color) ? 'active' : ''}`} onClick={() => toggleColor(color)}>{color}</button>)}</div> : <small style={{ color: '#999' }}>Ketik warna di field "Warna" terlebih dahulu</small>}</label>
-      <Field label="Ukuran tersedia (pisahkan koma)" value={availableSizesText} onChange={(value) => { setAvailableSizesText(value); update('availableSizes', parseList(value)) }} required />
-      <Field label="Fitur (pisahkan koma)" value={featureText} onChange={(value) => { setFeatureText(value); update('features', parseList(value)) }} required />
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+        <div className="modal-heading">
+          <div>
+            <p className="eyebrow">Catalog</p>
+            <h2 id="product-modal-title">{product ? "Edit produk" : "Tambah produk"}</h2>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Tutup">
+            ×
+          </button>
+        </div>
+        <form onSubmit={(e) => void submit(e)} className="product-form">
+          <div className="form-grid">
+            <Field label="Nama produk" value={form.name} onChange={handleNameChange} required />
+            <Field label="Slug" value={form.slug} onChange={(value) => update("slug", value)} required />
+            <SelectField label="Kategori" value={form.category} options={["Slide", "Slop", "Wedges"]} onChange={(value) => update("category", value)} />
+            <Field
+              label="Harga"
+              value={form.price}
+              onChange={(value) => {
+                const numbers = value.replace(/\D/g, "");
+                if (!numbers) return update("price", "");
+                update("price", "Rp" + new Intl.NumberFormat("id-ID").format(Number(numbers)));
+              }}
+              required
+            />
+            <SelectField label="Target" value={form.target} options={["Women", "Men", "Unisex", "Kids"]} onChange={(value) => update("target", value)} />
+            <SelectField label="Availability" value={form.availability} options={["Tersedia", "Pre-order", "Habis"]} onChange={(value) => update("availability", value)} />
+            <Field
+              label="Warna (pisahkan koma jika lebih dari satu)"
+              value={form.color}
+              onChange={(value) => {
+                update("color", value);
+                const colors = value
+                  .split(",")
+                  .map((c) => c.trim())
+                  .filter(Boolean);
+                update("availableColors", colors);
+              }}
+              required
+            />
+            <label className="color-toggle-field">
+              Warna Tersedia
+              {parsedColors.length > 0 ? (
+                <div className="color-toggle-list">
+                  {parsedColors.map((color) => (
+                    <button type="button" key={color} className={`color-toggle-chip ${form.availableColors.map((c) => c.trim()).includes(color) ? "active" : ""}`} onClick={() => toggleColor(color)}>
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <small style={{ color: "#999" }}>Ketik warna di field "Warna" terlebih dahulu</small>
+              )}
+            </label>
+            <Field
+              label="Ukuran tersedia (pisahkan koma)"
+              value={availableSizesText}
+              onChange={(value) => {
+                setAvailableSizesText(value);
+                update("availableSizes", parseList(value));
+              }}
+              required
+            />
+            <Field
+              label="Fitur (pisahkan koma)"
+              value={featureText}
+              onChange={(value) => {
+                setFeatureText(value);
+                update("features", parseList(value));
+              }}
+              required
+            />
+          </div>
+          <label>
+            Deskripsi lengkap
+            <textarea value={form.description} onChange={(event) => update("description", event.target.value)} required rows={3} />
+          </label>
+          <label className="image-upload-field">
+            Gambar produk
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              required={!product && form.images.length === 0}
+              onChange={(event) => {
+                handleImageChange(event.target.files);
+                event.target.value = "";
+              }}
+            />
+            <small>Pilih satu atau beberapa gambar (maks. 5 MB per file).</small>
+          </label>
+          {(previewUrls.length > 0 || form.existingImages.length > 0) && (
+            <div className="image-preview-grid">
+              {form.existingImages.map((url, i) => (
+                <div className="image-preview-item" key={`existing-${url}`}>
+                  <img src={url} alt={`Gambar ${i + 1}`} />
+                  <button type="button" className="image-delete-btn" onClick={() => removeExistingImage(i)} aria-label="Hapus gambar">
+                    ×
+                  </button>
+                </div>
+              ))}
+              {previewUrls.map((url, i) => (
+                <div className="image-preview-item" key={`new-${url}`}>
+                  <img src={url} alt={`Preview ${i + 1}`} />
+                  <span className="image-preview-badge">Baru</span>
+                  <button type="button" className="image-delete-btn" onClick={() => removeNewImage(i)} aria-label="Hapus gambar">
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {error && <p className="form-error">{error}</p>}
+          <div className="modal-actions">
+            <button type="button" className="outline-button" onClick={onClose}>
+              Batal
+            </button>
+            <button type="submit" className="primary-button">
+              Simpan produk
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
-    <label>Deskripsi lengkap<textarea value={form.description} onChange={(event) => update('description', event.target.value)} required rows={3} /></label>
-    <label className="image-upload-field">Gambar produk<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple required={!product && form.images.length === 0} onChange={(event) => { handleImageChange(event.target.files); event.target.value = ''; }} /><small>Pilih satu atau beberapa gambar (maks. 5 MB per file).</small></label>
-    {(previewUrls.length > 0 || form.existingImages.length > 0) && <div className="image-preview-grid">
-      {form.existingImages.map((url, i) => <div className="image-preview-item" key={`existing-${url}`}><img src={url} alt={`Gambar ${i + 1}`} /><button type="button" className="image-delete-btn" onClick={() => removeExistingImage(i)} aria-label="Hapus gambar">×</button></div>)}
-      {previewUrls.map((url, i) => <div className="image-preview-item" key={`new-${url}`}><img src={url} alt={`Preview ${i + 1}`} /><span className="image-preview-badge">Baru</span><button type="button" className="image-delete-btn" onClick={() => removeNewImage(i)} aria-label="Hapus gambar">×</button></div>)}
-    </div>}
-    {error && <p className="form-error">{error}</p>}
-    <div className="modal-actions"><button type="button" className="outline-button" onClick={onClose}>Batal</button><button type="submit" className="primary-button">Simpan produk</button></div>
-  </form></section></div>
+  );
 }
 
 function Field({ label, value, onChange, required }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
-  return <label>{label}<input required={required} value={value} onChange={(event) => onChange(event.target.value)} /></label>
+  return (
+    <label>
+      {label}
+      <input required={required} value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
 }
-function SelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) { return <label>{label}<select value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option}>{option}</option>)}</select></label> }
-function Loading() { return <div className="empty-state"><span className="loader" /> Memuat data...</div> }
-function EmptyState({ message }: { message: string }) { return <div className="empty-state"><span className="empty-icon">□</span><strong>{message}</strong><small>Data akan muncul setelah tersedia di database.</small></div> }
-export default App
+function SelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
+  return (
+    <label>
+      {label}
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option}>{option}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+function Loading() {
+  return (
+    <div className="empty-state">
+      <span className="loader" /> Memuat data...
+    </div>
+  );
+}
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="empty-state">
+      <span className="empty-icon">□</span>
+      <strong>{message}</strong>
+      <small>Data akan muncul setelah tersedia di database.</small>
+    </div>
+  );
+}
+export default App;

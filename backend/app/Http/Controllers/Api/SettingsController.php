@@ -109,8 +109,22 @@ class SettingsController extends Controller
         }
 
         foreach (['hero_image', 'size_guide_image', 'about_image'] as $key) {
+            if ($request->boolean('delete_'.$key)) {
+                $current = Customization::where('key', $key)->value('value');
+                if (is_string($current) && Str::startsWith($current, 'customizations/')) Storage::disk('public')->delete($current);
+                Customization::updateOrCreate(['key' => $key], ['value' => null]);
+            }
             if ($request->hasFile($key)) {
                 $this->replaceCustomizationImage($key, $request->file($key)->store('customizations', 'public'));
+            }
+        }
+
+        foreach (range(1, 5) as $index) {
+            $key = 'story_image_'.$index;
+            if ($request->boolean('delete_'.$key)) {
+                $current = Customization::where('key', $key)->value('value');
+                if (is_string($current) && Str::startsWith($current, 'customizations/')) Storage::disk('public')->delete($current);
+                Customization::updateOrCreate(['key' => $key], ['value' => null]);
             }
         }
 

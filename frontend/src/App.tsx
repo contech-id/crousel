@@ -10,12 +10,14 @@ import { AboutPage } from '@/pages/AboutPage'
 import { CollectionPage } from '@/pages/CollectionPage'
 import { ContactPage } from '@/pages/ContactPage'
 import { CategoryPage } from '@/pages/CategoryPage'
+
 import { CartPage } from '@/pages/CartPage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
 import { HomePage } from '@/pages/HomePage'
 import { HowToOrderPage } from '@/pages/HowToOrderPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { ProductDetailPage } from '@/pages/ProductDetailPage'
+import { PaymentPage } from '@/pages/PaymentPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ShopPage } from '@/pages/ShopPage'
@@ -36,6 +38,7 @@ const localizedRoutes: Record<string, string> = {
   '/size-guide': '/panduan-ukuran',
   '/how-to-order': '/cara-memesan',
   '/contact': '/kontak',
+  '/payment': '/pembayaran',
 }
 
 function App() {
@@ -120,6 +123,8 @@ function App() {
       case 'keranjang':
       case 'cart': page = <CartPage />; break
       case 'checkout': page = <CheckoutPage />; break
+      case 'pembayaran':
+      case 'payment': page = <PaymentPage />; break
       case 'login': page = <LoginPage />; break
       case 'daftar':
       case 'register': page = <RegisterPage />; break
