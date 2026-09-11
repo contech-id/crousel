@@ -1,5 +1,5 @@
-import { Check, CreditCard, MapPin, Package, Truck } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { Check, CreditCard, LoaderCircle, MapPin, Package, Truck } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/atoms/ui/button";
 import { AppShell } from "@/components/templates/AppShell";
@@ -7,13 +7,17 @@ import { formatPrice, priceToNumber, useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { WhatsappInput } from "@/components/molecules/WhatsappInput";
 import { LocationFields } from "@/components/molecules/LocationFields";
+import { AddressPageSkeleton } from "@/components/organisms/AddressPageSkeleton";
 
-const shippingMethods = [
-  { id: "jnt", name: "J&T Express", detail: "Estimasi 2–4 hari", price: 18000 },
-  { id: "jne", name: "JNE REG", detail: "Estimasi 2–5 hari", price: 16000 },
-  { id: "sicepat", name: "SiCepat REG", detail: "Estimasi 2–4 hari", price: 15000 },
-  { id: "pickup", name: "Ambil di toko Crousel", detail: "Siap diambil hari ini", price: 0 },
-];
+type ShippingMethod = { id: string; name: string; detail: string; price: number; courier?: string };
+type ShippingApiRow = { name?: string; code?: string; service?: string; description?: string; cost?: number | string; etd?: string };
+const pickupMethod: ShippingMethod = {
+  id: "pickup",
+  courier: "pickup",
+  name: "Ambil di toko Crousel",
+  detail: "Siap diambil hari ini",
+  price: 0,
+};
 
 const paymentMethods = [
   { id: "va-bca", name: "Virtual Account BCA", detail: "Konfirmasi otomatis" },
@@ -38,15 +42,95 @@ export function CheckoutPage() {
   const [city, setCity] = useState(() => user?.city ?? "");
   const [district, setDistrict] = useState(() => user?.district ?? "");
   const [village, setVillage] = useState(() => user?.village ?? "");
-  const [shippingId, setShippingId] = useState(shippingMethods[0].id);
+  const [shippingId, setShippingId] = useState("pickup");
   const [paymentId, setPaymentId] = useState(paymentMethods[0].id);
   const [voucher, setVoucher] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [locationsLoading, setLocationsLoading] = useState(true);
+  const [destinationDistrictId, setDestinationDistrictId] = useState("");
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([pickupMethod]);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState("");
+  const [enabledCouriers, setEnabledCouriers] = useState<string[]>([]);
+  const [shippingConfigLoading, setShippingConfigLoading] = useState(true);
 
-  const selectedShipping = shippingMethods.find((item) => item.id === shippingId) ?? shippingMethods[0];
+  const selectedShipping = shippingMethods.find((item) => item.id === shippingId) ?? pickupMethod;
   const total = subtotal + selectedShipping.price - discount;
+  // Product data belum memiliki field berat, jadi gunakan fallback 500 gram per item.
+  const totalWeight = items.reduce((sum, item) => sum + 500 * item.quantity, 0);
 
-  const canSubmit = Boolean(items.length > 0 && province && city && district && village && paymentId && shippingId);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${import.meta.env.VITE_API_URL}/shipping/methods`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => ({}))) as { data?: Array<{ code?: string }> };
+        if (!response.ok) throw new Error("Konfigurasi metode pengiriman gagal dimuat.");
+        setEnabledCouriers((payload.data ?? []).map((method) => method.code).filter((code): code is string => Boolean(code)));
+      })
+      .catch((error) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setShippingError(error instanceof Error ? error.message : "Konfigurasi metode pengiriman gagal dimuat.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setShippingConfigLoading(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (locationsLoading || shippingConfigLoading || !destinationDistrictId || items.length === 0) return;
+    const controller = new AbortController();
+    const loadShippingCosts = async () => {
+      setShippingLoading(true);
+      setShippingError("");
+      setShippingMethods([pickupMethod]);
+      setShippingId(pickupMethod.id);
+      if (enabledCouriers.length === 0) {
+        setShippingError("Belum ada metode pengiriman yang diaktifkan oleh admin.");
+        setShippingLoading(false);
+        return;
+      }
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/shipping/cost`, {
+          method: "POST",
+          headers: { Accept: "application/json", "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            origin: Number(import.meta.env.VITE_RAJAONGKIR_ORIGIN_DISTRICT_ID || "1391"),
+            destination: Number(destinationDistrictId),
+            weight: totalWeight,
+            courier: enabledCouriers.join(":"),
+            price: "lowest",
+          }),
+        });
+        const payload = (await response.json().catch(() => ({}))) as { data?: ShippingApiRow[]; message?: string };
+        if (!response.ok) throw new Error(payload.message || "Ongkos kirim gagal dimuat.");
+        const rates: ShippingMethod[] = (Array.isArray(payload.data) ? payload.data : [])
+          .filter((row) => Number(row.cost) >= 0 && row.code && row.service)
+          .map((row) => ({
+            id: `${row.code}-${row.service}`,
+            courier: row.code ?? "",
+            name: `${row.name || row.code?.toUpperCase()} ${row.service}`,
+            detail: row.etd ? `Estimasi ${row.etd}` : row.description || "Layanan pengiriman",
+            price: Number(row.cost),
+          }));
+        setShippingMethods([...rates, pickupMethod]);
+        setShippingId(rates[0]?.id || pickupMethod.id);
+        if (!rates.length) setShippingError("Belum ada layanan kurir untuk alamat ini.");
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setShippingError(error instanceof Error ? error.message : "Ongkos kirim gagal dimuat.");
+      } finally {
+        if (!controller.signal.aborted) setShippingLoading(false);
+      }
+    };
+    void loadShippingCosts();
+    return () => controller.abort();
+  }, [destinationDistrictId, enabledCouriers, items, locationsLoading, shippingConfigLoading, totalWeight]);
+
+  const canSubmit = Boolean(items.length > 0 && province && city && district && village && paymentId && shippingId && !shippingLoading);
 
   const handleProvinceChange = (value: string) => {
     setProvince(value);
@@ -133,6 +217,8 @@ export function CheckoutPage() {
 
   return (
     <AppShell>
+      {locationsLoading && <AddressPageSkeleton variant="checkout" />}
+      <div className={locationsLoading ? "hidden" : "contents"}>
       <form onSubmit={handleSubmit}>
         <section className="mx-auto max-w-[90rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -183,6 +269,8 @@ export function CheckoutPage() {
                     city={city}
                     district={district}
                     subdistrict={village}
+                    onLoadingChange={setLocationsLoading}
+                    onDistrictIdChange={setDestinationDistrictId}
                     onChange={(key, value) => {
                       if (key === "province") handleProvinceChange(value);
                       else if (key === "city") handleCityChange(value);
@@ -228,17 +316,24 @@ export function CheckoutPage() {
                   </div>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {shippingMethods.map((method) => (
-                    <OptionButton
-                      key={method.id}
-                      selected={shippingId === method.id}
-                      onClick={() => setShippingId(method.id)}
-                      title={method.name}
-                      detail={method.detail}
-                      trailing={method.price === 0 ? "Gratis" : formatPrice(method.price)}
-                    />
-                  ))}
+                  {shippingLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground sm:col-span-2">
+                      <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> Menghitung ongkos kirim...
+                    </div>
+                  ) : (
+                    shippingMethods.map((method) => (
+                      <OptionButton
+                        key={method.id}
+                        selected={shippingId === method.id}
+                        onClick={() => setShippingId(method.id)}
+                        title={method.name}
+                        detail={method.detail}
+                        trailing={method.price === 0 ? "Gratis" : formatPrice(method.price)}
+                      />
+                    ))
+                  )}
                 </div>
+                {shippingError && <p className="mt-3 text-xs text-destructive">{shippingError}</p>}
               </section>
 
               <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
@@ -345,6 +440,7 @@ export function CheckoutPage() {
           </div>
         </section>
       </form>
+      </div>
     </AppShell>
   );
 }

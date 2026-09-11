@@ -171,9 +171,10 @@ class SettingsController extends Controller
     {
         StoreSetting::firstOrCreate(['id' => 1], ['store_name' => 'Crousel Official', 'store_email' => 'hello@crousel.id', 'whatsapp' => '6281234567890', 'province' => 'DKI Jakarta', 'regency' => 'Jakarta Selatan', 'district' => 'Kebayoran Baru', 'village' => 'Pulo', 'postal_code' => '12160', 'address' => 'Jl. Crousel No. 1', 'location_landmark' => 'Dekat taman kota']);
         NotificationSetting::firstOrCreate(['id' => 1]);
-        if (ShippingMethod::count() === 0) ShippingMethod::insert([['code' => 'jne', 'name' => 'JNE', 'provider' => 'RajaOngkir', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()], ['code' => 'jnt', 'name' => 'J&T Express', 'provider' => 'RajaOngkir', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()], ['code' => 'sicepat', 'name' => 'SiCepat', 'provider' => 'RajaOngkir', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()]]);
+        ShippingMethod::ensureDefaults();
         if (PaymentMethod::count() === 0) PaymentMethod::insert([['code' => 'bca_va', 'name' => 'BCA Virtual Account', 'type' => 'virtual_account', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()], ['code' => 'bsi_va', 'name' => 'BSI Virtual Account', 'type' => 'virtual_account', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()], ['code' => 'seabank_va', 'name' => 'SeaBank Virtual Account', 'type' => 'virtual_account', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()], ['code' => 'qris', 'name' => 'QRIS', 'type' => 'qris', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()], ['code' => 'dana', 'name' => 'DANA', 'type' => 'e_wallet', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()], ['code' => 'ovo', 'name' => 'OVO', 'type' => 'e_wallet', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()], ['code' => 'gopay', 'name' => 'GoPay', 'type' => 'e_wallet', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()]]);
     }
+
 
     private function payload(): array
     {

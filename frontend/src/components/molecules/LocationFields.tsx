@@ -8,47 +8,84 @@ type Props = {
   subdistrict: string;
   onChange: (key: "province" | "city" | "district" | "subdistrict", value: string) => void;
   className?: string;
+  onLoadingChange?: (loading: boolean) => void;
+  onDistrictIdChange?: (districtId: string) => void;
 };
 const input =
   "mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50";
-export function LocationFields({ province, city, district, subdistrict, onChange }: Props) {
+const locationKey = (value: string) => value.toUpperCase().replace(/^(KOTA|KABUPATEN)\s+/, "").replace(/\s*\([^)]*\)\s*/g, "").trim();
+const findOption = (options: LocationOption[], value: string) => options.find((option) => locationKey(option.name) === locationKey(value));
+
+export function LocationFields({ province, city, district, subdistrict, onChange, onLoadingChange, onDistrictIdChange }: Props) {
   const [provinces, setProvinces] = useState<LocationOption[]>([]);
   const [cities, setCities] = useState<LocationOption[]>([]);
   const [districts, setDistricts] = useState<LocationOption[]>([]);
   const [subdistricts, setSubdistricts] = useState<LocationOption[]>([]);
-  const locationKey = (value: string) => value.toUpperCase().replace(/^(KOTA|KABUPATEN)\s+/, "").replace(/\s*\([^)]*\)\s*/g, "").trim();
-  const findOption = (options: LocationOption[], value: string) => options.find((option) => locationKey(option.name) === locationKey(value));
+  const [provincesLoaded, setProvincesLoaded] = useState(false);
+  const [citiesLoadedFor, setCitiesLoadedFor] = useState<string | null>(null);
+  const [districtsLoadedFor, setDistrictsLoadedFor] = useState<string | null>(null);
+  const [subdistrictsLoadedFor, setSubdistrictsLoadedFor] = useState<string | null>(null);
   const provinceOption = useMemo(() => findOption(provinces, province), [province, provinces]);
   const cityOption = useMemo(() => findOption(cities, city), [city, cities]);
   const districtOption = useMemo(() => findOption(districts, district), [district, districts]);
+  const loading =
+    !provincesLoaded ||
+    Boolean(provinceOption && citiesLoadedFor !== provinceOption.id) ||
+    Boolean(cityOption && districtsLoadedFor !== cityOption.id) ||
+    Boolean(districtOption && subdistrictsLoadedFor !== districtOption.id);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
+
+  useEffect(() => {
+    onDistrictIdChange?.(districtOption?.id ?? "");
+  }, [districtOption, onDistrictIdChange]);
+
   useEffect(() => {
     void fetchProvinces()
       .then(setProvinces)
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => setProvincesLoaded(true));
   }, []);
   useEffect(() => {
     setCities([]);
+    setCitiesLoadedFor(null);
     setDistricts([]);
+    setDistrictsLoadedFor(null);
     setSubdistricts([]);
-    if (provinceOption)
-      void fetchCities(provinceOption.id)
+    setSubdistrictsLoadedFor(null);
+    if (provinceOption) {
+      const id = provinceOption.id;
+      void fetchCities(id)
         .then(setCities)
-        .catch(() => setCities([]));
+        .catch(() => setCities([]))
+        .finally(() => setCitiesLoadedFor(id));
+    }
   }, [provinceOption]);
   useEffect(() => {
     setDistricts([]);
+    setDistrictsLoadedFor(null);
     setSubdistricts([]);
-    if (cityOption)
-      void fetchDistricts(cityOption.id)
+    setSubdistrictsLoadedFor(null);
+    if (cityOption) {
+      const id = cityOption.id;
+      void fetchDistricts(id)
         .then(setDistricts)
-        .catch(() => setDistricts([]));
+        .catch(() => setDistricts([]))
+        .finally(() => setDistrictsLoadedFor(id));
+    }
   }, [cityOption]);
   useEffect(() => {
     setSubdistricts([]);
-    if (districtOption)
-      void fetchSubdistricts(districtOption.id)
+    setSubdistrictsLoadedFor(null);
+    if (districtOption) {
+      const id = districtOption.id;
+      void fetchSubdistricts(id)
         .then(setSubdistricts)
-        .catch(() => setSubdistricts([]));
+        .catch(() => setSubdistricts([]))
+        .finally(() => setSubdistrictsLoadedFor(id));
+    }
   }, [districtOption]);
   const select = (
     label: string,

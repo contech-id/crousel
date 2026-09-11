@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\ShippingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -26,6 +27,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/locations/cities/{provinceId}', [LocationController::class, 'cities']);
     Route::get('/locations/districts/{cityId}', [LocationController::class, 'districts']);
     Route::get('/locations/subdistricts/{districtId}', [LocationController::class, 'subdistricts']);
+    Route::post('/shipping/cost', [ShippingController::class, 'cost']);
+    Route::get('/shipping/methods', [ShippingController::class, 'available']);
 
     // Store settings are exposed as a cohesive module. Replace with admin auth middleware in production.
     Route::get('/settings', [SettingsController::class, 'index']);

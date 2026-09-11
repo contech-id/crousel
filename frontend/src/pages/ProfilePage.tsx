@@ -1,4 +1,4 @@
-import { Camera, Check, LogOut, MapPin, Package, Save, UserRound, X } from "lucide-react";
+import { Camera, Check, LogOut, Package, Save, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/atoms/ui/button";
@@ -6,6 +6,7 @@ import { AppShell } from "@/components/templates/AppShell";
 import { useAuth, type UserProfile } from "@/hooks/useAuth";
 import { LocationFields } from "@/components/molecules/LocationFields";
 import { WhatsappInput } from "@/components/molecules/WhatsappInput";
+import { AddressPageSkeleton } from "@/components/organisms/AddressPageSkeleton";
 
 const emptyProfile: UserProfile = {
   fullName: "",
@@ -30,6 +31,7 @@ export function ProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [saving, setSaving] = useState(false);
+  const [locationsLoading, setLocationsLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
   const [orders] = useState<Array<{ id: string; date: string; total: number; status: string }>>(() => {
     try {
@@ -84,6 +86,8 @@ export function ProfilePage() {
 
   return (
     <AppShell>
+      {locationsLoading && <AddressPageSkeleton variant="profile" />}
+      <div className={locationsLoading ? "hidden" : "contents"}>
       <section className="mx-auto max-w-[90rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -159,6 +163,7 @@ export function ProfilePage() {
                     city={form.city}
                     district={form.district}
                     subdistrict={form.village}
+                    onLoadingChange={setLocationsLoading}
                     onChange={(key, value) =>
                       setForm((current) => {
                         if (key === "province")
@@ -245,6 +250,7 @@ export function ProfilePage() {
           </div>
         </div>
       </section>
+      </div>
       {showSuccess && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-4"

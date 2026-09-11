@@ -19,6 +19,7 @@ return [
     ],
     'rajaongkir' => [
         'key' => env('RAJAONGKIR_API_KEY'),
+        'origin_district_id' => env('RAJAONGKIR_ORIGIN_DISTRICT_ID'),
     ],
 
     'resend' => [

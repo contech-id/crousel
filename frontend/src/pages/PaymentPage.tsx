@@ -1,4 +1,4 @@
-import { Check, Clock, Copy, CreditCard, Info, Receipt } from "lucide-react";
+import { Check, Clock, Copy, CreditCard, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/atoms/ui/button";
@@ -130,7 +130,7 @@ export function PaymentPage() {
               <div className="my-5 border-t border-border" />
               <div className="flex justify-between items-center">
                 <span className="font-bold">Total Pembayaran</span>
-                <span className="text-2xl font-black text-primary">{formatPrice(order.total)}</span>
+                <span className="text-2xl font-black text-black">{formatPrice(order.total)}</span>
               </div>
             </div>
           </div>
