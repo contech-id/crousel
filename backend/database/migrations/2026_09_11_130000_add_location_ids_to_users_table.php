@@ -1,0 +1,24 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->unsignedBigInteger('province_id')->nullable()->after('province');
+            $table->unsignedBigInteger('regency_id')->nullable()->after('regency');
+            $table->unsignedBigInteger('district_id')->nullable()->after('district');
+            $table->unsignedBigInteger('village_id')->nullable()->after('village');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropColumn(['province_id', 'regency_id', 'district_id', 'village_id']);
+        });
+    }
+};

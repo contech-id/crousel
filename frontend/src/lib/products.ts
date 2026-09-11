@@ -11,6 +11,7 @@ export type Product = {
   images: string[]
   description: string
   price: string
+  weight?: number
   features: string[]
   availableSizes: string[]
   availability: string

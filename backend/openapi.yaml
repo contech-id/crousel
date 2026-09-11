@@ -21,6 +21,8 @@ tags:
     description: Pengaturan toko, pengiriman, pembayaran, dan notifikasi
   - name: Notifications
     description: Histori notifikasi admin
+  - name: Orders
+    description: Pembuatan pesanan dan daftar pesanan admin
   - name: Admin Authentication
     description: Autentikasi dan pengelolaan akun administrator
 paths:
@@ -199,6 +201,92 @@ paths:
           $ref: '#/components/responses/Unauthenticated'
         '422':
           $ref: '#/components/responses/ValidationError'
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Buat pesanan baru
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrderCreateRequest' }
+      responses:
+        '201':
+          description: Pesanan berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  data: { $ref: '#/components/schemas/Order' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/orders:
+    get:
+      tags: [Orders]
+      summary: Daftar pesanan untuk admin
+      operationId: listAdminOrders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar pesanan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Order' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /checkout/payment:
+    post:
+      tags: [Orders]
+      summary: Buat order dan Snap token Midtrans
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckoutPaymentRequest' }
+      responses:
+        '201':
+          description: Snap token berhasil dibuat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckoutPaymentResponse' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '502': { description: Gagal membuat transaksi Midtrans }
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: Ambil status pembayaran order
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Status order
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderStatusResponse' }
+        '404': { description: Order tidak ditemukan }
+  /webhooks/midtrans:
+    post:
+      tags: [Orders]
+      summary: Notification webhook Midtrans
+      description: Validasi signature dan update status order secara idempotent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MidtransNotification' }
+      responses:
+        '200': { description: Notification berhasil diproses }
+        '403': { description: Signature tidak valid }
   /products:
     get:
       tags: [Products]
@@ -775,9 +863,13 @@ components:
         birth_date: { type: string, format: date, nullable: true, example: '1995-08-17' }
         gender: { type: string, enum: [male, female, other], nullable: true, example: male }
         province: { type: string, nullable: true, example: Jawa Barat }
+        province_id: { type: integer, nullable: true, example: 9 }
         regency: { type: string, nullable: true, example: Kota Bandung }
+        regency_id: { type: integer, nullable: true, example: 108 }
         district: { type: string, nullable: true, example: Coblong }
+        district_id: { type: integer, nullable: true, example: 1543 }
         village: { type: string, nullable: true, example: Dago }
+        village_id: { type: integer, nullable: true, example: 22550 }
         postal_code: { type: string, nullable: true, example: '40135' }
         address: { type: string, nullable: true, example: Jl. Contoh No. 10 }
         avatar_url: { type: string, format: uri, nullable: true, readOnly: true, description: URL publik foto profil }
@@ -816,9 +908,13 @@ components:
         birth_date: { type: string, format: date, nullable: true }
         gender: { type: string, enum: [male, female, other], nullable: true }
         province: { type: string, maxLength: 100, nullable: true }
+        province_id: { type: integer, minimum: 1, nullable: true }
         regency: { type: string, maxLength: 100, nullable: true }
+        regency_id: { type: integer, minimum: 1, nullable: true }
         district: { type: string, maxLength: 100, nullable: true }
+        district_id: { type: integer, minimum: 1, nullable: true }
         village: { type: string, maxLength: 100, nullable: true }
+        village_id: { type: integer, minimum: 1, nullable: true }
         postal_code: { type: string, maxLength: 10, nullable: true }
         address: { type: string, maxLength: 500, nullable: true }
     UpdateProfileMultipartRequest:
@@ -830,9 +926,13 @@ components:
         birth_date: { type: string, format: date, nullable: true }
         gender: { type: string, enum: [male, female, other], nullable: true }
         province: { type: string, maxLength: 100, nullable: true }
+        province_id: { type: integer, minimum: 1, nullable: true }
         regency: { type: string, maxLength: 100, nullable: true }
+        regency_id: { type: integer, minimum: 1, nullable: true }
         district: { type: string, maxLength: 100, nullable: true }
+        district_id: { type: integer, minimum: 1, nullable: true }
         village: { type: string, maxLength: 100, nullable: true }
+        village_id: { type: integer, minimum: 1, nullable: true }
         postal_code: { type: string, maxLength: 10, nullable: true }
         address: { type: string, maxLength: 500, nullable: true }
         avatar: { type: string, format: binary, description: 'Foto profil JPEG, PNG, WebP, atau GIF maksimal 5 MB' }
@@ -948,7 +1048,7 @@ components:
             notifications: { $ref: '#/components/schemas/NotificationSettings' }
     Product:
       type: object
-      required: [id, slug, name, category, target, color, availableColors, images, description, price, features, availableSizes, availability, created_at, updated_at]
+      required: [id, slug, name, category, target, color, availableColors, images, description, price, weight, features, availableSizes, availability, created_at, updated_at]
       properties:
         id: { type: integer, format: int64, example: 1 }
         slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', example: invoker-full-black }
@@ -960,6 +1060,7 @@ components:
         images: { type: array, items: { type: string, format: uri }, description: 'URL publik gambar yang dikembalikan API.', example: [http://localhost:8000/storage/products/invoker-front.jpg] }
         description: { type: string, example: Sandal slide Invoker dengan desain minimalis full black. }
         price: { type: string, example: Rp249.000 }
+        weight: { type: integer, minimum: 1, description: 'Berat produk dalam gram.', example: 500 }
         features: { type: array, items: { type: string }, example: [Hand Made Crafting, Crousel Embossed Logo] }
         availableSizes: { type: array, items: { type: string }, example: ['36', '37', '38', '39', '40'] }
         availability: { type: string, enum: [Tersedia, Pre-order, Habis], example: Tersedia }
@@ -1005,9 +1106,94 @@ components:
     ProductUpdateRequest:
       allOf:
         - $ref: '#/components/schemas/ProductUpdateFields'
+    OrderProduct:
+      type: object
+      required: [name, weight, quantity, total_weight]
+      properties:
+        name: { type: string, maxLength: 200, example: Luna Sandal }
+        size: { type: string, nullable: true, example: '40' }
+        color: { type: string, nullable: true, example: Jet Black }
+        weight: { type: integer, minimum: 1, description: 'Berat satu produk dalam gram.', example: 500 }
+        quantity: { type: integer, minimum: 1, example: 2 }
+        total_weight: { type: integer, minimum: 1, description: 'Berat produk dikalikan jumlah.', example: 1000 }
+    OrderCreateRequest:
+      type: object
+      required: [customer_name, products, item_count, payment_method, total]
+      properties:
+        customer_name: { type: string, maxLength: 150 }
+        products: { type: array, minItems: 1, items: { $ref: '#/components/schemas/OrderProduct' } }
+        item_count: { type: integer, minimum: 1 }
+        payment_method: { type: string, maxLength: 150 }
+        total: { type: integer, minimum: 0 }
+    CheckoutPaymentRequest:
+      type: object
+      required: [items, shipping, idempotency_key]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [product_id, size, color, quantity]
+            properties:
+              product_id: { type: integer }
+              size: { type: string }
+              color: { type: string }
+              quantity: { type: integer, minimum: 1 }
+        shipping:
+          type: object
+          required: [courier, service, cost]
+          properties:
+            courier: { type: string }
+            service: { type: string }
+            cost: { type: integer, minimum: 0 }
+        idempotency_key: { type: string, maxLength: 100 }
+    CheckoutPaymentResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          properties:
+            order_id: { type: string }
+            snap_token: { type: string }
+    OrderStatusResponse:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/Order' }
+    MidtransNotification:
+      type: object
+      required: [order_id, status_code, gross_amount, signature_key, transaction_status]
+      properties:
+        order_id: { type: string }
+        status_code: { type: string }
+        gross_amount: { type: string }
+        signature_key: { type: string }
+        transaction_status: { type: string }
+        transaction_id: { type: string }
+        payment_type: { type: string }
+        settlement_time: { type: string, format: date-time }
+    Order:
+      type: object
+      properties:
+        id: { type: string, example: CRS-260911-0001 }
+        customer: { type: string }
+        date: { type: string, example: 11/09/2026 }
+        products: { type: array, items: { $ref: '#/components/schemas/OrderProduct' } }
+        items: { type: integer }
+        payment: { type: string }
+        total: { type: integer }
+        status: { type: string }
+        payment_status: { type: string, enum: [pending, paid, failed, expired, cancelled] }
+        transaction_status: { type: string, nullable: true }
+        gross_amount: { type: integer }
+        midtrans_transaction_id: { type: string, nullable: true }
+        snap_token: { type: string, nullable: true, writeOnly: true }
+        shipping_cost: { type: integer }
+        paid_at: { type: string, format: date-time, nullable: true }
     ProductCreateFields:
       type: object
-      required: [slug, name, category, target, color, availableColors, images, description, price, features, availableSizes, availability]
+      required: [slug, name, category, target, color, availableColors, images, description, price, weight, features, availableSizes, availability]
       properties:
         slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }
         name: { type: string, maxLength: 150 }
@@ -1018,6 +1204,7 @@ components:
         images: { type: array, minItems: 1, items: { type: string, format: binary }, description: 'Satu atau beberapa file gambar (JPEG, PNG, WebP, atau GIF), maksimal 5 MB per file.' }
         description: { type: string }
         price: { type: string, maxLength: 50 }
+        weight: { type: integer, minimum: 1, description: 'Berat produk dalam gram.' }
         features: { type: array, items: { type: string } }
         availableSizes: { type: array, minItems: 1, items: { type: string } }
         availability: { type: string, enum: [Tersedia, Pre-order, Habis] }
@@ -1035,6 +1222,7 @@ components:
         deletedImages: { type: array, items: { type: string, format: uri }, description: 'Daftar URL gambar yang sudah ada (dari respons API) untuk dihapus dari produk ini.' }
         description: { type: string }
         price: { type: string, maxLength: 50 }
+        weight: { type: integer, minimum: 1, description: 'Berat produk dalam gram.' }
         features: { type: array, items: { type: string } }
         availableSizes: { type: array, items: { type: string } }
         availability: { type: string, enum: [Tersedia, Pre-order, Habis] }

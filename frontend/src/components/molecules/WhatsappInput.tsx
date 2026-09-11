@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { normalizeWhatsapp } from "@/lib/locations";
 
 type Props = {
@@ -13,9 +13,7 @@ export function WhatsappInput({ value, onChange, className = "", placeholder = "
   const toLocal = (phone: string) => phone.replace(/^\+?62/, "");
   const [localValue, setLocalValue] = useState(() => toLocal(value));
 
-  useEffect(() => {
-    if (!focused) setLocalValue(toLocal(value));
-  }, [focused, value]);
+  const displayValue = focused ? localValue : toLocal(value);
 
   return (
     <div
@@ -26,7 +24,7 @@ export function WhatsappInput({ value, onChange, className = "", placeholder = "
         required={required}
         type="tel"
         inputMode="numeric"
-        value={localValue}
+        value={displayValue}
         onFocus={() => setFocused(true)}
         onBlur={() => {
           setFocused(false);

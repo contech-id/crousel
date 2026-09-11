@@ -1,182 +1,70 @@
-import { Check, Clock, Copy, CreditCard, Info } from "lucide-react";
+import { CheckCircle2, Clock, CreditCard, Info, LoaderCircle, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/atoms/ui/button";
 import { AppShell } from "@/components/templates/AppShell";
 import { formatPrice } from "@/hooks/useCart";
 
+type OrderStatus = {
+  id: string;
+  total: number;
+  payment_status: "pending" | "paid" | "failed" | "expired" | "cancelled";
+  transaction_status?: string | null;
+  payment?: string | null;
+  items?: number;
+  date?: string;
+};
+
+const labels: Record<OrderStatus["payment_status"], string> = {
+  pending: "Menunggu pembayaran",
+  paid: "Pembayaran berhasil",
+  failed: "Pembayaran gagal",
+  expired: "Pembayaran kedaluwarsa",
+  cancelled: "Pembayaran dibatalkan",
+};
+
 export function PaymentPage() {
-  const [order, setOrder] = useState<any>(null);
-  const [copied, setCopied] = useState(false);
-  const [vaNumber, setVaNumber] = useState("");
+  const [order, setOrder] = useState<OrderStatus | null>(null);
+  const [error, setError] = useState("");
+  const orderId = new URLSearchParams(window.location.search).get("order_id") || window.localStorage.getItem("crousel-last-order-id");
 
   useEffect(() => {
-    const previousOrders = JSON.parse(window.localStorage.getItem("crousel-orders") || "[]");
-    if (previousOrders.length > 0) {
-      const latestOrder = previousOrders[0];
-      setOrder(latestOrder);
-      
-      const isVA = latestOrder.payment.toLowerCase().includes("virtual account");
-      if (isVA) {
-        // Generate a random but deterministic VA number based on order ID
-        const hash = latestOrder.id.split("").reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-        setVaNumber(`8077${hash.toString().padStart(8, "0").slice(0, 8)}`);
+    if (!orderId) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const token = window.localStorage.getItem("crousel-api-token");
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/orders/${encodeURIComponent(orderId)}`, {
+          headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        });
+        const payload = await response.json() as { data?: OrderStatus; message?: string };
+        if (!response.ok || !payload.data) throw new Error(payload.message || "Status order gagal dimuat.");
+        if (active) setOrder(payload.data);
+      } catch (reason) {
+        if (active) setError(reason instanceof Error ? reason.message : "Status order gagal dimuat.");
       }
-    }
-  }, []);
+    };
+    void load();
+    const timer = window.setInterval(() => { if (order?.payment_status === "pending") void load(); }, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [orderId, order?.payment_status]);
 
-  if (!order) {
-    return (
-      <AppShell>
-        <section className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6 lg:py-28">
-          <h1 className="text-2xl font-bold">Tidak ada pesanan aktif</h1>
-          <Button variant="secondary" className="mt-6 rounded-full" asChild>
-            <a href="/">Kembali ke beranda</a>
-          </Button>
-        </section>
-      </AppShell>
-    );
-  }
+  if (!orderId || error) return <AppShell><section className="mx-auto max-w-2xl px-4 py-20 text-center"><p className="text-sm text-destructive">{error || "Tidak ada pesanan aktif."}</p><Button variant="secondary" className="mt-6 rounded-full" asChild><a href="/profil?tab=orders">Lihat pesanan saya</a></Button></section></AppShell>;
+  if (!order) return <AppShell><section className="mx-auto flex min-h-screen max-w-2xl items-center justify-center px-4"><LoaderCircle className="size-6 animate-spin" /></section></AppShell>;
 
-  const isVA = order.payment.toLowerCase().includes("virtual account");
-  const isCOD = order.payment.toLowerCase().includes("cod");
-  
-  // Calculate deadline (24 hours from now)
-  const deadline = new Date();
-  deadline.setDate(deadline.getDate() + 1);
-
-  const handleCopy = () => {
-    if (vaNumber) {
-      navigator.clipboard.writeText(vaNumber);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
+  const paid = order.payment_status === "paid";
+  const failed = ["failed", "expired", "cancelled"].includes(order.payment_status);
   return (
     <AppShell hideFooter>
-      <section className="mx-auto min-h-screen max-w-3xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
-        <div className="space-y-6">
-          {!isCOD && (
-            <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 text-center">
-              <div className="flex items-center justify-center gap-2 text-sm font-medium text-destructive">
-                <Clock className="size-4" />
-                Batas Waktu Pembayaran
-              </div>
-              <p className="mt-2 text-xl font-bold">
-                {deadline.toLocaleDateString("id-ID", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}{" "}
-                pukul{" "}
-                {deadline.toLocaleTimeString("id-ID", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="bg-muted/50 p-5 sm:p-6 border-b border-border">
-              <h2 className="font-bold flex items-center gap-2">
-                <CreditCard className="size-5" />
-                Informasi Pembayaran
-              </h2>
-            </div>
-            <div className="p-5 sm:p-6 space-y-5">
-              <div className={`grid grid-cols-1 ${isVA ? "sm:grid-cols-2 gap-8" : "gap-5"}`}>
-                <div className="space-y-5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Status Pembayaran</span>
-                    <span className="inline-flex items-center rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">
-                      {order.status}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Metode Pembayaran</span>
-                    <span className="font-medium text-sm">{order.payment}</span>
-                  </div>
-                </div>
-
-                {isVA && (
-                  <div>
-                    <span className="text-sm text-muted-foreground block mb-2">Nomor Virtual Account</span>
-                    <div className="flex items-center justify-between bg-muted rounded-xl p-3 border border-border">
-                      <span className="text-lg font-bold tracking-wider">{vaNumber}</span>
-                      <button
-                        onClick={handleCopy}
-                        className="flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="size-4 text-emerald-600" />
-                            <span className="text-emerald-600">Tersalin</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="size-4" />
-                            Salin
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="my-5 border-t border-border" />
-              <div className="flex justify-between items-center">
-                <span className="font-bold">Total Pembayaran</span>
-                <span className="text-2xl font-black text-black">{formatPrice(order.total)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="bg-muted/50 p-5 sm:p-6 border-b border-border">
-              <h2 className="font-bold">Detail Pesanan</h2>
-            </div>
-            <div className="p-5 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-xs text-muted-foreground block">ID Pesanan</span>
-                  <span className="text-sm font-medium">{order.id}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground block">Tanggal Pesanan</span>
-                  <span className="text-sm font-medium">{order.date}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground block">Produk</span>
-                  <span className="text-sm font-medium leading-relaxed">{order.products}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground block">Jumlah Item</span>
-                  <span className="text-sm font-medium">{order.items} barang</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="rounded-xl bg-secondary/10 p-4 flex gap-3 text-sm text-secondary-foreground border border-secondary/20">
-            <Info className="size-5 shrink-0" />
-            <p>
-              {isCOD 
-                ? "Tim kami akan segera menghubungi melalui WhatsApp untuk konfirmasi pengiriman." 
-                : "Setelah pembayaran berhasil, pesananmu akan segera kami proses. Konfirmasi pembayaran dilakukan secara otomatis."}
-            </p>
-          </div>
-
-          <div className="pt-4 flex gap-4 flex-col sm:flex-row">
-            <Button variant="secondary" className="flex-1 rounded-full" asChild>
-              <a href="/profil">Selesai</a>
-            </Button>
-          </div>
+      <section className="mx-auto min-h-screen max-w-3xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16"><div className="space-y-6">
+        <div className="rounded-2xl border border-border bg-card p-8 text-center">
+          {paid ? <CheckCircle2 className="mx-auto size-12 text-emerald-600" /> : failed ? <XCircle className="mx-auto size-12 text-destructive" /> : <Clock className="mx-auto size-12 text-amber-600" />}
+          <h1 className="mt-4 text-2xl font-black">{labels[order.payment_status]}</h1><p className="mt-2 text-sm text-muted-foreground">Order {order.id}</p><p className="mt-5 text-3xl font-black text-black">{formatPrice(order.total)}</p>
         </div>
-      </section>
+        <div className="rounded-2xl border border-border bg-card p-5 sm:p-6"><div className="flex items-center gap-2"><CreditCard className="size-5" /><h2 className="font-bold">Detail transaksi</h2></div><div className="mt-5 grid gap-4 text-sm sm:grid-cols-2"><div><span className="text-xs text-muted-foreground">Status Midtrans</span><p className="font-medium">{order.transaction_status || "pending"}</p></div><div><span className="text-xs text-muted-foreground">Metode pembayaran</span><p className="font-medium">{order.payment || "Dipilih di Midtrans Snap"}</p></div><div><span className="text-xs text-muted-foreground">Jumlah item</span><p className="font-medium">{order.items || 0} barang</p></div><div><span className="text-xs text-muted-foreground">Tanggal</span><p className="font-medium">{order.date || "-"}</p></div></div></div>
+        {!paid && <div className="flex gap-3 rounded-xl border border-secondary/20 bg-secondary/10 p-4 text-sm text-secondary-foreground"><Info className="size-5 shrink-0" /><p>Status akan diperbarui otomatis setelah webhook Midtrans diterima.</p></div>}
+        <Button variant="secondary" className="w-full rounded-full" asChild><a href="/profil?tab=orders">Lihat pesanan saya</a></Button>
+      </div></section>
     </AppShell>
   );
 }

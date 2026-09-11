@@ -144,6 +144,7 @@ class ProductController extends Controller
             'deletedImages.*' => ['string'],
             'description' => [$required, 'string'],
             'price' => [$required, 'string', 'max:50'],
+            'weight' => [$required, 'integer', 'min:1', 'max:100000'],
             'features' => [$required, 'array'],
             'features.*' => ['string', 'max:255'],
             'availableSizes' => [$required, 'array', 'min:1'],

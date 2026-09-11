@@ -7,9 +7,13 @@ export type UserProfile = {
   birthDate: string;
   gender: string;
   province: string;
+  provinceId: string;
   city: string;
+  cityId: string;
   district: string;
+  districtId: string;
   village: string;
+  villageId: string;
   postalCode: string;
   address: string;
   avatarUrl: string;
@@ -20,9 +24,13 @@ type ApiUser = {
   birth_date?: string | null;
   gender?: string | null;
   province?: string | null;
+  province_id?: number | string | null;
   regency?: string | null;
+  regency_id?: number | string | null;
   district?: string | null;
+  district_id?: number | string | null;
   village?: string | null;
+  village_id?: number | string | null;
   postal_code?: string | null;
   address?: string | null;
   avatar_url?: string | null;
@@ -56,9 +64,13 @@ function mapApiUser(user: ApiUser, password = ""): UserProfile {
             ? "Tidak ingin menyebutkan"
             : (user.gender ?? ""),
     province: user.province ?? "",
+    provinceId: user.province_id ? String(user.province_id) : "",
     city: user.regency ?? "",
+    cityId: user.regency_id ? String(user.regency_id) : "",
     district: user.district ?? "",
+    districtId: user.district_id ? String(user.district_id) : "",
     village: user.village ?? "",
+    villageId: user.village_id ? String(user.village_id) : "",
     postalCode: user.postal_code ?? "",
     address: user.address ?? "",
     avatarUrl: user.avatar_url ?? "",
@@ -96,6 +108,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) saveUser(user);
   }, [user]);
+  useEffect(() => {
+    const token = window.localStorage.getItem(tokenKey);
+    const savedPassword = readUser()?.password ?? "";
+    if (window.localStorage.getItem(sessionKey) !== "active" || !token) return;
+    const controller = new AbortController();
+    fetch(`${apiUrl}/profile`, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` }, signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const payload = (await response.json()) as { data?: { user?: ApiUser } };
+        return payload.data?.user ?? null;
+      })
+      .then((apiUser) => {
+        if (apiUser) setUser(mapApiUser(apiUser, savedPassword));
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -130,9 +159,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           birthDate: "",
           gender: "",
           province: "",
+          provinceId: "",
           city: "",
+          cityId: "",
           district: "",
+          districtId: "",
           village: "",
+          villageId: "",
           postalCode: "",
           address: "",
           avatarUrl: "",
@@ -194,9 +227,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     ? "other"
                     : profile.gender,
             province: profile.province,
+            province_id: profile.provinceId,
             regency: profile.city,
+            regency_id: profile.cityId,
             district: profile.district,
+            district_id: profile.districtId,
             village: profile.village,
+            village_id: profile.villageId,
             postal_code: profile.postalCode,
             address: profile.address,
           };

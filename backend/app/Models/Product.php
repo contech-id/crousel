@@ -19,6 +19,7 @@ class Product extends Model
         'images',
         'description',
         'price',
+        'weight',
         'features',
         'availableSizes',
         'availability',
@@ -31,6 +32,7 @@ class Product extends Model
             'images' => 'array',
             'features' => 'array',
             'availableSizes' => 'array',
+            'weight' => 'integer',
         ];
     }
 }

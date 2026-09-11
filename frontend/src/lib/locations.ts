@@ -7,6 +7,7 @@ async function load(path: string): Promise<LocationOption[]> {
   if (!response.ok) throw new Error('Data lokasi gagal dimuat')
   return (payload.data ?? []).map((item) => ({ id: String(item.id ?? item.province_id ?? item.city_id ?? item.district_id ?? item.subdistrict_id ?? item.sub_district_id ?? ''), name: String(item.name ?? item.province_name ?? item.city_name ?? item.district_name ?? item.subdistrict_name ?? item.sub_district_name ?? '') })).filter((item) => item.id && item.name)
 }
+
 export const fetchProvinces = () => load('/locations/provinces')
 export const fetchCities = (provinceId: string) => load(`/locations/cities/${encodeURIComponent(provinceId)}`)
 export const fetchDistricts = (cityId: string) => load(`/locations/districts/${encodeURIComponent(cityId)}`)

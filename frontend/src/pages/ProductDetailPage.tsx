@@ -258,6 +258,7 @@ function ProductDetail({ product }: ProductDetailProps) {
               <dl className="mt-4 divide-y divide-border text-sm sm:grid sm:grid-cols-2 sm:gap-x-8 sm:divide-y-0">
                 <div className="flex justify-between gap-4 border-b border-border py-3 sm:border-t"><dt className="text-muted-foreground">Kategori</dt><dd className="text-right font-medium">{product.category}</dd></div>
                 <div className="flex justify-between gap-4 border-b border-border py-3 sm:border-t"><dt className="text-muted-foreground">Target</dt><dd className="text-right font-medium">{product.target}</dd></div>
+                <div className="flex justify-between gap-4 border-b border-border py-3 sm:border-t"><dt className="text-muted-foreground">Berat</dt><dd className="text-right font-medium">{product.weight ?? 500} gram</dd></div>
               </dl>
             </div>
           </div>

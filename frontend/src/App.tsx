@@ -18,6 +18,7 @@ import { HowToOrderPage } from '@/pages/HowToOrderPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { ProductDetailPage } from '@/pages/ProductDetailPage'
 import { PaymentPage } from '@/pages/PaymentPage'
+import { PaymentSuccessPage } from '@/pages/PaymentSuccessPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ShopPage } from '@/pages/ShopPage'
@@ -125,6 +126,7 @@ function App() {
       case 'checkout': page = <CheckoutPage />; break
       case 'pembayaran':
       case 'payment': page = <PaymentPage />; break
+      case 'pembayaran/berhasil': page = <PaymentSuccessPage />; break
       case 'login': page = <LoginPage />; break
       case 'daftar':
       case 'register': page = <RegisterPage />; break

@@ -19,7 +19,16 @@ return [
     ],
     'rajaongkir' => [
         'key' => env('RAJAONGKIR_API_KEY'),
+        'base_url' => env('RAJAONGKIR_BASE_URL', 'https://rajaongkir.komerce.id/api/v1'),
         'origin_district_id' => env('RAJAONGKIR_ORIGIN_DISTRICT_ID'),
+        'couriers' => env('RAJAONGKIR_COURIERS', 'jne,jnt,sicepat,pos,tiki'),
+    ],
+    'midtrans' => [
+        'server_key' => env('MIDTRANS_SERVER_KEY'),
+        'client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'merchant_id' => env('MIDTRANS_MERCHANT_ID'),
+        'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
+        'api_url' => env('MIDTRANS_API_URL', 'https://app.sandbox.midtrans.com/snap/v1/transactions'),
     ],
 
     'resend' => [

@@ -1,65 +1,52 @@
-import { Check, CreditCard, LoaderCircle, MapPin, Package, Truck } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { Check, LoaderCircle, MapPin, Package, Truck } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/atoms/ui/button";
 import { AppShell } from "@/components/templates/AppShell";
 import { formatPrice, priceToNumber, useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
-import { WhatsappInput } from "@/components/molecules/WhatsappInput";
-import { LocationFields } from "@/components/molecules/LocationFields";
-import { AddressPageSkeleton } from "@/components/organisms/AddressPageSkeleton";
+import { loadMidtransSnap } from "@/lib/midtrans";
 
-type ShippingMethod = { id: string; name: string; detail: string; price: number; courier?: string };
+type ShippingMethod = { id: string; name: string; detail: string; price: number; courier?: string; service?: string };
 type ShippingApiRow = { name?: string; code?: string; service?: string; description?: string; cost?: number | string; etd?: string };
 const pickupMethod: ShippingMethod = {
   id: "pickup",
   courier: "pickup",
+  service: "pickup",
   name: "Ambil di toko Crousel",
   detail: "Siap diambil hari ini",
   price: 0,
 };
 
-const paymentMethods = [
-  { id: "va-bca", name: "Virtual Account BCA", detail: "Konfirmasi otomatis" },
-  { id: "va-mandiri", name: "Virtual Account Mandiri", detail: "Konfirmasi otomatis" },
-  { id: "ewallet", name: "E-wallet", detail: "GoPay, OVO, DANA, ShopeePay" },
-  { id: "qris", name: "QRIS", detail: "Scan dengan aplikasi pilihanmu" },
-  { id: "cod", name: "COD", detail: "Bayar saat paket diterima" },
-];
-
-const inputClassName =
-  "h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30";
-const demoOrderNumber = "CRS-240905";
+function navigateToPayment(orderId: string) {
+  window.history.pushState({}, "", `/pembayaran?order_id=${encodeURIComponent(orderId)}`);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
 
 export function CheckoutPage() {
   const { items, subtotal } = useCart();
   const { user } = useAuth();
-  const [recipientName, setRecipientName] = useState(() => user?.fullName ?? "");
-  const [recipientWhatsapp, setRecipientWhatsapp] = useState(() => user?.phone ?? "");
-  const [postalCode, setPostalCode] = useState(() => user?.postalCode ?? "");
-  const [address, setAddress] = useState(() => user?.address ?? "");
-  const [province, setProvince] = useState(() => user?.province ?? "");
-  const [city, setCity] = useState(() => user?.city ?? "");
-  const [district, setDistrict] = useState(() => user?.district ?? "");
-  const [village, setVillage] = useState(() => user?.village ?? "");
   const [shippingId, setShippingId] = useState("pickup");
-  const [paymentId, setPaymentId] = useState(paymentMethods[0].id);
-  const [voucher, setVoucher] = useState("");
-  const [discount, setDiscount] = useState(0);
-  const [locationsLoading, setLocationsLoading] = useState(true);
-  const [destinationDistrictId, setDestinationDistrictId] = useState("");
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([pickupMethod]);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingError, setShippingError] = useState("");
   const [enabledCouriers, setEnabledCouriers] = useState<string[]>([]);
   const [shippingConfigLoading, setShippingConfigLoading] = useState(true);
+  const [creatingPayment, setCreatingPayment] = useState(false);
+  const idempotencyKey = useRef<string | null>(null);
 
   const selectedShipping = shippingMethods.find((item) => item.id === shippingId) ?? pickupMethod;
-  const total = subtotal + selectedShipping.price - discount;
-  // Product data belum memiliki field berat, jadi gunakan fallback 500 gram per item.
-  const totalWeight = items.reduce((sum, item) => sum + 500 * item.quantity, 0);
+  const total = subtotal + selectedShipping.price;
+  const totalWeight = items.reduce((sum, item) => sum + (item.product.weight ?? 500) * item.quantity, 0);
+  const hasSavedAddress = Boolean(user?.province && user?.city && user?.district && user?.village && user?.address && user?.districtId);
+  // Checkout never loads RajaOngkir location lists. The saved district ID from
+  // the backend is enough to calculate shipping costs.
+  const districtForShipping = user?.districtId || "";
 
   useEffect(() => {
+    if (!hasSavedAddress) {
+      return;
+    }
     const controller = new AbortController();
     fetch(`${import.meta.env.VITE_API_URL}/shipping/methods`, {
       headers: { Accept: "application/json" },
@@ -77,10 +64,10 @@ export function CheckoutPage() {
         if (!controller.signal.aborted) setShippingConfigLoading(false);
       });
     return () => controller.abort();
-  }, []);
+  }, [hasSavedAddress]);
 
   useEffect(() => {
-    if (locationsLoading || shippingConfigLoading || !destinationDistrictId || items.length === 0) return;
+    if (!hasSavedAddress || shippingConfigLoading || !districtForShipping || items.length === 0) return;
     const controller = new AbortController();
     const loadShippingCosts = async () => {
       setShippingLoading(true);
@@ -98,8 +85,7 @@ export function CheckoutPage() {
           headers: { Accept: "application/json", "Content-Type": "application/json" },
           signal: controller.signal,
           body: JSON.stringify({
-            origin: Number(import.meta.env.VITE_RAJAONGKIR_ORIGIN_DISTRICT_ID || "1391"),
-            destination: Number(destinationDistrictId),
+            destination: Number(districtForShipping),
             weight: totalWeight,
             courier: enabledCouriers.join(":"),
             price: "lowest",
@@ -112,6 +98,7 @@ export function CheckoutPage() {
           .map((row) => ({
             id: `${row.code}-${row.service}`,
             courier: row.code ?? "",
+            service: row.service ?? "",
             name: `${row.name || row.code?.toUpperCase()} ${row.service}`,
             detail: row.etd ? `Estimasi ${row.etd}` : row.description || "Layanan pengiriman",
             price: Number(row.cost),
@@ -128,76 +115,51 @@ export function CheckoutPage() {
     };
     void loadShippingCosts();
     return () => controller.abort();
-  }, [destinationDistrictId, enabledCouriers, items, locationsLoading, shippingConfigLoading, totalWeight]);
+  }, [districtForShipping, enabledCouriers, hasSavedAddress, items, shippingConfigLoading, totalWeight]);
 
-  const canSubmit = Boolean(items.length > 0 && province && city && district && village && paymentId && shippingId && !shippingLoading);
-
-  const handleProvinceChange = (value: string) => {
-    setProvince(value);
-    setCity("");
-    setDistrict("");
-    setVillage("");
-  };
-
-  const handleCityChange = (value: string) => {
-    setCity(value);
-    setDistrict("");
-    setVillage("");
-  };
-
-  const handleDistrictChange = (value: string) => {
-    setDistrict(value);
-    setVillage("");
-  };
-
-  const handleVoucher = () => {
-    setDiscount(voucher.trim().toUpperCase() === "CROUSEL10" ? Math.round(subtotal * 0.1) : 0);
-  };
+  const canSubmit = Boolean(items.length > 0 && hasSavedAddress && shippingId && !shippingLoading && !creatingPayment);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) return;
-    const previousOrders = JSON.parse(window.localStorage.getItem("crousel-orders") || "[]");
-    const localOrder = {
-      id: demoOrderNumber,
-      customer: recipientName,
-      date: new Date().toLocaleDateString("id-ID"),
-      products: items.map((item) => item.product.name).join(", "),
-      items: items.reduce((sum, item) => sum + item.quantity, 0),
-      payment: paymentMethods.find((method) => method.id === paymentId)?.name ?? paymentId,
-      total,
-      status: "Menunggu pembayaran",
-    };
+    setCreatingPayment(true);
+    setShippingError("");
+    idempotencyKey.current ??= typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/orders`, {
+      const token = window.localStorage.getItem("crousel-api-token");
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/checkout/payment`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
-          customer_name: recipientName,
-          products: items.map((item) => item.product.name),
-          item_count: localOrder.items,
-          payment_method: localOrder.payment,
-          total,
+          items: items.map((item) => ({
+            product_id: item.product.id,
+            size: item.size,
+            color: item.color,
+            quantity: item.quantity,
+          })),
+          shipping: {
+            courier: selectedShipping.courier ?? "pickup",
+            service: selectedShipping.service ?? "pickup",
+            cost: selectedShipping.price,
+          },
+          idempotency_key: idempotencyKey.current,
         }),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message);
-      localOrder.id = result.data.id;
-    } catch {
-      // Keep demo order ID
+      const result = await response.json() as { data?: { order_id?: string; snap_token?: string }; message?: string };
+      if (!response.ok || !result.data?.order_id || !result.data.snap_token) throw new Error(result.message || "Gagal membuat transaksi pembayaran.");
+      const snap = await loadMidtransSnap();
+      window.localStorage.setItem("crousel-last-order-id", result.data.order_id);
+      snap.pay(result.data.snap_token, {
+        onSuccess: () => navigateToPayment(result.data?.order_id ?? ""),
+        onPending: () => navigateToPayment(result.data?.order_id ?? ""),
+        onError: () => navigateToPayment(result.data?.order_id ?? ""),
+        onClose: () => navigateToPayment(result.data?.order_id ?? ""),
+      });
+    } catch (error) {
+      setShippingError(error instanceof Error ? error.message : "Gagal membuat transaksi pembayaran.");
+    } finally {
+      setCreatingPayment(false);
     }
-    window.localStorage.setItem("crousel-orders", JSON.stringify([localOrder, ...previousOrders]));
-    void fetch(`${import.meta.env.VITE_API_URL}/notifications/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        type: "new_order",
-        title: "Pesanan baru",
-        message: `Pesanan ${demoOrderNumber} menunggu diproses.`,
-      }),
-    }).catch(() => undefined);
-    window.history.pushState({}, "", "/pembayaran");
-    window.dispatchEvent(new PopStateEvent("popstate"));
   };
 
   if (items.length === 0) {
@@ -217,8 +179,6 @@ export function CheckoutPage() {
 
   return (
     <AppShell>
-      {locationsLoading && <AddressPageSkeleton variant="checkout" />}
-      <div className={locationsLoading ? "hidden" : "contents"}>
       <form onSubmit={handleSubmit}>
         <section className="mx-auto max-w-[90rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -243,66 +203,31 @@ export function CheckoutPage() {
                     <p className="text-xs text-muted-foreground">Pastikan detail alamatmu sudah benar.</p>
                   </div>
                 </div>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <label className="text-sm font-medium">
-                    Nama lengkap
-                    <input
-                      required
-                      name="name"
-                      value={recipientName}
-                      onChange={(event) => setRecipientName(event.target.value)}
-                      className={`${inputClassName} mt-2`}
-                      placeholder="Nama penerima"
-                    />
-                  </label>
-                  <label className="text-sm font-medium">
-                    Nomor WhatsApp
-                    <WhatsappInput
-                      required
-                      value={recipientWhatsapp}
-                      onChange={setRecipientWhatsapp}
-                      className="mt-2 h-11"
-                    />
-                  </label>
-                  <LocationFields
-                    province={province}
-                    city={city}
-                    district={district}
-                    subdistrict={village}
-                    onLoadingChange={setLocationsLoading}
-                    onDistrictIdChange={setDestinationDistrictId}
-                    onChange={(key, value) => {
-                      if (key === "province") handleProvinceChange(value);
-                      else if (key === "city") handleCityChange(value);
-                      else if (key === "district") handleDistrictChange(value);
-                      else setVillage(value);
-                    }}
-                  />
-                  <label className="text-sm font-medium">
-                    Kode pos
-                    <input
-                      required
-                      name="postalCode"
-                      inputMode="numeric"
-                      value={postalCode}
-                      onChange={(event) => setPostalCode(event.target.value)}
-                      className={`${inputClassName} mt-2`}
-                      placeholder="12345"
-                    />
-                  </label>
-                  <label className="text-sm font-medium sm:col-span-2">
-                    Alamat lengkap
-                    <textarea
-                      required
-                      name="address"
-                      rows={3}
-                      value={address}
-                      onChange={(event) => setAddress(event.target.value)}
-                      className="mt-2 w-full resize-none rounded-xl border border-input bg-background px-3 py-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30"
-                      placeholder="Nama jalan, nomor rumah, patokan"
-                    />
-                  </label>
-                </div>
+                {hasSavedAddress ? (
+                  <div className="mt-6 rounded-xl border border-border bg-muted/30 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-foreground">{user?.fullName}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{user?.phone}</p>
+                        <p className="mt-3 text-sm text-muted-foreground line-clamp-2">{user?.address}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {user?.village}, {user?.district}, {user?.city}, {user?.province} {user?.postalCode}
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm" className="shrink-0 rounded-full" asChild>
+                        <a href="/profil">Ubah alamat</a>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-6 rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center">
+                    <p className="text-sm font-semibold">Alamat pengiriman belum diatur.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Atur alamat di profil terlebih dahulu agar ongkos kirim dan checkout dapat dihitung.</p>
+                    <Button variant="secondary" className="mt-4 rounded-full" asChild>
+                      <a href="/profil">Atur alamat</a>
+                    </Button>
+                  </div>
+                )}
               </section>
 
               <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
@@ -336,28 +261,6 @@ export function CheckoutPage() {
                 {shippingError && <p className="mt-3 text-xs text-destructive">{shippingError}</p>}
               </section>
 
-              <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-full bg-secondary/25">
-                    <CreditCard aria-hidden="true" className="size-4" />
-                  </span>
-                  <div>
-                    <h2 className="font-bold">Metode pembayaran</h2>
-                    <p className="text-xs text-muted-foreground">Semua transaksi diproses dengan aman.</p>
-                  </div>
-                </div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {paymentMethods.map((method) => (
-                    <OptionButton
-                      key={method.id}
-                      selected={paymentId === method.id}
-                      onClick={() => setPaymentId(method.id)}
-                      title={method.name}
-                      detail={method.detail}
-                    />
-                  ))}
-                </div>
-              </section>
             </div>
 
             <aside className="rounded-2xl border border-border bg-card p-5 sm:p-6 lg:sticky lg:top-28">
@@ -384,22 +287,6 @@ export function CheckoutPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-6 flex gap-2">
-                <input
-                  value={voucher}
-                  onChange={(event) => setVoucher(event.target.value)}
-                  className={`${inputClassName} h-10`}
-                  placeholder="Kode voucher"
-                />
-                <Button type="button" variant="outline" className="h-10 rounded-xl px-3" onClick={handleVoucher}>
-                  Pakai
-                </Button>
-              </div>
-              {voucher && (
-                <p className={`mt-2 text-xs ${discount > 0 ? "text-emerald-600" : "text-destructive"}`}>
-                  {discount > 0 ? "Voucher CROUSEL10 berhasil digunakan." : "Kode voucher belum valid."}
-                </p>
-              )}
               <div className="my-5 border-t border-border" />
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -410,12 +297,6 @@ export function CheckoutPage() {
                   <span className="text-muted-foreground">Pengiriman</span>
                   <span>{selectedShipping.price === 0 ? "Gratis" : formatPrice(selectedShipping.price)}</span>
                 </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-emerald-600">
-                    <span>Diskon voucher</span>
-                    <span>− {formatPrice(discount)}</span>
-                  </div>
-                )}
               </div>
               <div className="my-5 border-t border-border" />
               <div className="flex justify-between">
@@ -429,7 +310,7 @@ export function CheckoutPage() {
                 className="mt-6 w-full rounded-full"
                 disabled={!canSubmit}
               >
-                Buat pesanan
+                {creatingPayment ? "Membuat transaksi..." : "Buat pesanan & bayar"}
               </Button>
               {!canSubmit && (
                 <p className="mt-3 text-center text-[11px] leading-4 text-muted-foreground">
@@ -440,7 +321,6 @@ export function CheckoutPage() {
           </div>
         </section>
       </form>
-      </div>
     </AppShell>
   );
 }

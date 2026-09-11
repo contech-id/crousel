@@ -42,7 +42,7 @@ class SettingsController extends Controller
         return response()->json(['message' => 'Profil toko berhasil dihapus.']);
     }
 
-    public function shipping(): JsonResponse { $this->ensureDefaults(); return response()->json(['data' => ShippingMethod::orderBy('name')->get()]); }
+    public function shipping(): JsonResponse { $this->ensureDefaults(); return response()->json(['data' => ShippingMethod::whereIn('code', ShippingMethod::configuredCodes())->orderBy('name')->get()]); }
     public function toggleShipping(Request $request, ShippingMethod $shippingMethod): JsonResponse
     {
         $data = $request->validate(['is_active' => ['required', 'boolean']]);
@@ -178,6 +178,6 @@ class SettingsController extends Controller
 
     private function payload(): array
     {
-        return ['profile' => StoreSetting::find(1), 'shipping' => ShippingMethod::orderBy('name')->get(), 'payments' => PaymentMethod::orderBy('name')->get(), 'notifications' => NotificationSetting::find(1)];
+        return ['profile' => StoreSetting::find(1), 'shipping' => ShippingMethod::whereIn('code', ShippingMethod::configuredCodes())->orderBy('name')->get(), 'payments' => PaymentMethod::orderBy('name')->get(), 'notifications' => NotificationSetting::find(1)];
     }
 }

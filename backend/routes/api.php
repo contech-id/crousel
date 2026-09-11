@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\ShippingController;
+use App\Http\Controllers\Api\CheckoutPaymentController;
+use App\Http\Controllers\Api\MidtransWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -23,6 +25,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/categories/{category}', [ProductCategoryController::class, 'show']);
     Route::get('/settings/customization', [SettingsController::class, 'customization']);
     Route::post('/orders', [OrderController::class, 'store']);
+    Route::post('/webhooks/midtrans', MidtransWebhookController::class);
     Route::get('/locations/provinces', [LocationController::class, 'provinces']);
     Route::get('/locations/cities/{provinceId}', [LocationController::class, 'cities']);
     Route::get('/locations/districts/{cityId}', [LocationController::class, 'districts']);
@@ -56,6 +59,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/users/{user}', [UserController::class, 'show']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::post('/checkout/payment', [CheckoutPaymentController::class, 'store']);
+        Route::get('/orders/{orderId}', [CheckoutPaymentController::class, 'show']);
     });
 
     Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function (): void {

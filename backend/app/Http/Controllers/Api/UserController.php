@@ -28,9 +28,13 @@ class UserController extends Controller
             'birth_date' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
             'gender' => ['sometimes', 'nullable', 'string', 'in:male,female,other'],
             'province' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'province_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'regency' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'regency_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'district' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'district_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'village' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'village_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'postal_code' => ['sometimes', 'nullable', 'string', 'max:10'],
             'address' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);

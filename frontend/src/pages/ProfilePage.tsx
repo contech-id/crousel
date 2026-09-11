@@ -6,7 +6,6 @@ import { AppShell } from "@/components/templates/AppShell";
 import { useAuth, type UserProfile } from "@/hooks/useAuth";
 import { LocationFields } from "@/components/molecules/LocationFields";
 import { WhatsappInput } from "@/components/molecules/WhatsappInput";
-import { AddressPageSkeleton } from "@/components/organisms/AddressPageSkeleton";
 
 const emptyProfile: UserProfile = {
   fullName: "",
@@ -15,9 +14,13 @@ const emptyProfile: UserProfile = {
   birthDate: "",
   gender: "",
   province: "",
+  provinceId: "",
   city: "",
+  cityId: "",
   district: "",
+  districtId: "",
   village: "",
+  villageId: "",
   postalCode: "",
   address: "",
   avatarUrl: "",
@@ -31,9 +34,8 @@ export function ProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [saving, setSaving] = useState(false);
-  const [locationsLoading, setLocationsLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [orders] = useState<Array<{ id: string; date: string; total: number; status: string }>>(() => {
+  const [orders, setOrders] = useState<Array<{ id: string; date: string; total: number; status: string; payment_status?: string }>>(() => {
     try {
       return JSON.parse(window.localStorage.getItem("crousel-orders") || "[]") as Array<{
         id: string;
@@ -45,7 +47,30 @@ export function ProfilePage() {
       return [];
     }
   });
-  const [activeTab, setActiveTab] = useState<"account" | "orders">("account");
+
+  useEffect(() => {
+    const token = window.localStorage.getItem("crousel-api-token");
+    if (!token) return;
+    fetch(`${import.meta.env.VITE_API_URL}/orders`, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { data?: Array<{ id: string; date: string; total: number; status: string; payment_status?: string }> };
+      })
+      .then((payload) => { if (payload?.data) setOrders(payload.data); })
+      .catch(() => undefined);
+  }, []);
+  const [activeTab, setActiveTab] = useState<"account" | "orders">(() =>
+    new URLSearchParams(window.location.search).get("tab") === "orders" ? "orders" : "account",
+  );
+
+  useEffect(() => {
+    if (!user) return;
+    // The profile API may finish hydrating after the page's initial local-storage
+    // render. Replace the form with the database-backed profile so all saved
+    // address labels and IDs are shown without location API calls.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setForm(user);
+  }, [user]);
 
   useEffect(
     () => () => {
@@ -86,8 +111,6 @@ export function ProfilePage() {
 
   return (
     <AppShell>
-      {locationsLoading && <AddressPageSkeleton variant="profile" />}
-      <div className={locationsLoading ? "hidden" : "contents"}>
       <section className="mx-auto max-w-[90rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -163,13 +186,25 @@ export function ProfilePage() {
                     city={form.city}
                     district={form.district}
                     subdistrict={form.village}
-                    onLoadingChange={setLocationsLoading}
+                    provinceId={form.provinceId}
+                    cityId={form.cityId}
+                    districtId={form.districtId}
+                    subdistrictId={form.villageId}
+                    onIdsChange={(ids) =>
+                      setForm((current) => ({
+                        ...current,
+                        provinceId: ids.provinceId,
+                        cityId: ids.cityId,
+                        districtId: ids.districtId,
+                        villageId: ids.subdistrictId,
+                      }))
+                    }
                     onChange={(key, value) =>
                       setForm((current) => {
                         if (key === "province")
-                          return { ...current, province: value, city: "", district: "", village: "" };
-                        if (key === "city") return { ...current, city: value, district: "", village: "" };
-                        if (key === "district") return { ...current, district: value, village: "" };
+                          return { ...current, province: value, provinceId: "", city: "", cityId: "", district: "", districtId: "", village: "", villageId: "" };
+                        if (key === "city") return { ...current, city: value, cityId: "", district: "", districtId: "", village: "", villageId: "" };
+                        if (key === "district") return { ...current, district: value, districtId: "", village: "", villageId: "" };
                         return { ...current, village: value };
                       })
                     }
@@ -233,7 +268,7 @@ export function ProfilePage() {
                         <div>
                           <p className="text-sm font-bold">{order.id}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {order.date} · {order.status}
+                            {order.date} · {order.payment_status === "paid" ? "Pembayaran berhasil" : order.payment_status === "failed" ? "Pembayaran gagal" : order.payment_status === "expired" ? "Pembayaran kedaluwarsa" : order.payment_status === "cancelled" ? "Pembayaran dibatalkan" : "Menunggu pembayaran"} · {order.status}
                           </p>
                         </div>
                         <p className="text-sm font-semibold">Rp{new Intl.NumberFormat("id-ID").format(order.total)}</p>
@@ -250,7 +285,6 @@ export function ProfilePage() {
           </div>
         </div>
       </section>
-      </div>
       {showSuccess && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-4"

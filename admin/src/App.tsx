@@ -5,13 +5,25 @@ import "./App.css";
 
 type Page = "home" | "customers" | "products" | "categories" | "settings" | "account" | "orders" | "shipping-status";
 type OrderStatus = "Menunggu pembayaran" | "Diproses" | "Dikemas" | "Dikirim" | "Selesai" | "Dibatalkan";
+type OrderProduct = {
+  name: string;
+  size?: string | null;
+  color?: string | null;
+  weight?: number;
+  quantity?: number;
+  total_weight?: number;
+};
 type AdminOrder = {
   id: string;
   customer: string;
   date: string;
-  products: string;
+  products: OrderProduct[] | string;
   items: number;
   payment: string;
+  payment_status?: string | null;
+  transaction_status?: string | null;
+  gross_amount?: number;
+  shipping_cost?: number;
   total: number;
   status: OrderStatus;
 };
@@ -26,6 +38,7 @@ type Product = {
   images: string[];
   description: string;
   price: string;
+  weight: number;
   features: string[];
   availableSizes: string[];
   availability: string;
@@ -115,6 +128,7 @@ const emptyProduct: ProductForm = {
   deletedImages: [],
   description: "",
   price: "",
+  weight: 500,
   features: [],
   availableSizes: [],
   availability: "Tersedia",
@@ -518,6 +532,7 @@ function ProductsPage() {
                   <th>Kategori</th>
                   <th>Target</th>
                   <th>Harga</th>
+                  <th>Berat</th>
                   <th>Status</th>
                   <th aria-label="Aksi" />
                 </tr>
@@ -537,6 +552,7 @@ function ProductsPage() {
                     <td>{product.category}</td>
                     <td>{product.target}</td>
                     <td className="price-cell">{product.price}</td>
+                    <td>{product.weight} g</td>
                     <td>
                       <span className={`availability ${product.availability === "Tersedia" ? "available" : ""}`}>{product.availability}</span>
                     </td>
@@ -1329,6 +1345,30 @@ function readOrders(): AdminOrder[] {
     return [];
   }
 }
+function OrderProductsCell({ products }: { products: AdminOrder["products"] }) {
+  if (typeof products === "string") return <span>{products || "-"}</span>;
+  if (!products.length) return <span>-</span>;
+  return (
+    <div style={{ display: "grid", gap: 4, whiteSpace: "normal", minWidth: 230 }}>
+      {products.map((product, index) => {
+        const quantity = product.quantity ?? 1;
+        const weight = product.weight ?? 500;
+        const totalWeight = product.total_weight ?? weight * quantity;
+        const options = [product.size && `Ukuran ${product.size}`, product.color && `Warna ${product.color}`]
+          .filter(Boolean)
+          .join(" · ");
+        return (
+          <div key={`${product.name}-${index}`}>
+            <strong style={{ color: "var(--ink)" }}>{product.name}</strong>
+            <small style={{ display: "block", color: "#8a8a84", marginTop: 2 }}>
+              {options || "Detail varian tidak tersedia"} · {weight} g × {quantity} = {new Intl.NumberFormat("id-ID").format(totalWeight)} g
+            </small>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 function OrderCards({ orders }: { orders: AdminOrder[] }) {
   const cards: Array<[string, OrderStatus]> = [
     ["Menunggu dibayar", "Menunggu pembayaran"],
@@ -1411,12 +1451,17 @@ function OrdersPage() {
                     </td>
                     <td>{order.customer || "Pelanggan"}</td>
                     <td>{order.date}</td>
-                    <td>{order.products || "-"}</td>
+                    <td><OrderProductsCell products={order.products} /></td>
                     <td>{order.items || 1}</td>
-                    <td>{order.payment || "-"}</td>
+                    <td>
+                      <div>{order.payment || "Dipilih di Midtrans"}</div>
+                      <small style={{ display: "block", color: "#8a8a84", marginTop: 3 }}>
+                        {order.payment_status || "pending"}{order.transaction_status ? ` · ${order.transaction_status}` : ""}
+                      </small>
+                    </td>
                     <td className="price-cell">Rp {new Intl.NumberFormat("id-ID").format(order.total || 0)}</td>
                     <td>
-                      <span className="availability available">{order.status}</span>
+                      <span className={`availability ${order.payment_status === "paid" ? "available" : ""}`}>{order.status}</span>
                     </td>
                   </tr>
                 ))}
@@ -1494,7 +1539,7 @@ function ShippingStatusPage() {
               <tbody>
                 {shown.map((order) => (
                   <tr key={order.id}>
-                    <td>{order.products || "-"}</td>
+                    <td><OrderProductsCell products={order.products} /></td>
                     <td>{order.id}</td>
                     <td>{order.customer || "Pelanggan"}</td>
                     <td>
@@ -1660,6 +1705,7 @@ function ProductModal({ product, onClose, onSaved }: { product: Product | null; 
     product
       ? {
           ...product,
+          weight: product.weight ?? 500,
           availableColors: product.availableColors ?? [],
           images: [],
           existingImages: product.images ?? [],
@@ -1781,6 +1827,13 @@ function ProductModal({ product, onClose, onSaved }: { product: Product | null; 
               }}
               required
             />
+            <Field
+              label="Berat barang (gram)"
+              type="number"
+              value={String(form.weight)}
+              onChange={(value) => update("weight", Math.max(1, Number(value) || 0))}
+              required
+            />
             <SelectField label="Target" value={form.target} options={["Women", "Men", "Unisex", "Kids"]} onChange={(value) => update("target", value)} />
             <SelectField label="Availability" value={form.availability} options={["Tersedia", "Pre-order", "Habis"]} onChange={(value) => update("availability", value)} />
             <Field
@@ -1883,11 +1936,11 @@ function ProductModal({ product, onClose, onSaved }: { product: Product | null; 
   );
 }
 
-function Field({ label, value, onChange, required }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
+function Field({ label, value, onChange, required, type = "text" }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; type?: string }) {
   return (
     <label>
       {label}
-      <input required={required} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input type={type} min={type === "number" ? 1 : undefined} required={required} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
