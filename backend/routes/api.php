@@ -81,6 +81,7 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/account/password', [AdminAuthController::class, 'updatePassword']);
         Route::post('/categories', [ProductCategoryController::class, 'store']);
         Route::get('/orders', [OrderController::class, 'index']);
+        Route::patch('/orders/{orderId}/status', [OrderController::class, 'updateStatus']);
         Route::patch('/categories/{category}', [ProductCategoryController::class, 'update']);
         Route::delete('/categories/{category}', [ProductCategoryController::class, 'destroy']);
         Route::put('/customization', [SettingsController::class, 'updateCustomization']);

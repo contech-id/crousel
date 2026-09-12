@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import * as React from "react";
+import { Home, Users, Package, Grid, ShoppingCart, Truck, Share2, Settings, UserCog } from "lucide-react";
 import "./App.css";
 
 type Page = "home" | "customers" | "products" | "categories" | "settings" | "account" | "orders" | "shipping-status" | "social-media";
@@ -292,15 +293,15 @@ function AdminShellEnhanced({ page, onNavigate, onLogout }: { page: Page; onNavi
         </div>
         <p className="nav-label">Workspace</p>
         <nav className="sidebar-nav">
-          <NavItem icon="H" label="Home" active={page === "home"} onClick={() => nav("home")} />
-          <NavItem icon="U" label="Users / Customer" active={page === "customers"} onClick={() => nav("customers")} />
-          <NavItem icon="P" label="Produk" active={page === "products"} onClick={() => nav("products")} />
-          <NavItem icon="K" label="Kategori" active={page === "categories"} onClick={() => nav("categories")} />
-          <NavItem icon="O" label="Pesanan" active={page === "orders"} onClick={() => nav("orders")} />
-          <NavItem icon="T" label="Status barang" active={page === "shipping-status"} onClick={() => nav("shipping-status")} />
-          <NavItem icon="@" label="Sosial media" active={page === "social-media"} onClick={() => nav("social-media")} />
-          <NavItem icon="S" label="Pengaturan" active={page === "settings"} onClick={() => nav("settings")} />
-          <NavItem icon="A" label="Akun admin" active={page === "account"} onClick={() => nav("account")} />
+          <NavItem icon={<Home size={18} />} label="Home" active={page === "home"} onClick={() => nav("home")} />
+          <NavItem icon={<Users size={18} />} label="Users / Customer" active={page === "customers"} onClick={() => nav("customers")} />
+          <NavItem icon={<Package size={18} />} label="Produk" active={page === "products"} onClick={() => nav("products")} />
+          <NavItem icon={<Grid size={18} />} label="Kategori" active={page === "categories"} onClick={() => nav("categories")} />
+          <NavItem icon={<ShoppingCart size={18} />} label="Pesanan" active={page === "orders"} onClick={() => nav("orders")} />
+          <NavItem icon={<Truck size={18} />} label="Status barang" active={page === "shipping-status"} onClick={() => nav("shipping-status")} />
+          <NavItem icon={<Share2 size={18} />} label="Sosial media" active={page === "social-media"} onClick={() => nav("social-media")} />
+          <NavItem icon={<Settings size={18} />} label="Pengaturan" active={page === "settings"} onClick={() => nav("settings")} />
+          <NavItem icon={<UserCog size={18} />} label="Akun admin" active={page === "account"} onClick={() => nav("account")} />
         </nav>
         <div className="sidebar-bottom">
           <div className="admin-mini">
@@ -369,10 +370,10 @@ function AdminShellEnhanced({ page, onNavigate, onLogout }: { page: Page; onNavi
   );
 }
 
-function NavItem({ icon, label, active, onClick }: { icon: string; label: string; active: boolean; onClick: () => void }) {
+function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
   return (
     <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>
-      <span className="nav-icon">{icon}</span>
+      <span className="nav-icon" style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', lineHeight: 0 }}>{icon}</span>
       {label}
       <span className="nav-arrow">›</span>
     </button>
@@ -1421,13 +1422,31 @@ function OrderCards({ orders }: { orders: AdminOrder[] }) {
 function OrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>(readOrders);
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+  const [query, setQuery] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const refresh = () => {
     void apiRequest<{ data: AdminOrder[] }>("/admin/orders")
       .then((result) => setOrders(result.data))
       .catch(() => setOrders(readOrders()));
   };
   useEffect(refresh, []);
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const filtered = orders.filter((order) => {
+    const matchesStatus = filter === "all" || order.status === filter;
+    const search = query.trim().toLowerCase();
+    return matchesStatus && (!search || order.id.toLowerCase().includes(search) || (order.customer || "").toLowerCase().includes(search));
+  });
+  const updateStatus = async (order: AdminOrder, status: OrderStatus) => {
+    if (status === order.status) return;
+    setUpdatingId(order.id);
+    try {
+      const result = await apiRequest<{ data: AdminOrder }>(`/admin/orders/${encodeURIComponent(order.id)}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+      setOrders((items) => items.map((item) => item.id === order.id ? result.data : item));
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Status pesanan gagal diperbarui.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
   return (
     <div className="orders-admin-page">
       <div className="page-heading">
@@ -1443,6 +1462,10 @@ function OrdersPage() {
       <OrderCards orders={orders} />
       <section className="panel table-panel">
         <div className="table-toolbar">
+          <div className="search-field">
+            <span>⌕</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari ID order atau nama pelanggan..." aria-label="Cari pesanan" />
+          </div>
           <div className="status-filters">
             <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
               Semua
@@ -1490,7 +1513,9 @@ function OrdersPage() {
                     </td>
                     <td className="price-cell">Rp {new Intl.NumberFormat("id-ID").format(order.total || 0)}</td>
                     <td>
-                      <span className={`availability ${order.payment_status === "paid" ? "available" : ""}`}>{order.status}</span>
+                      <select className="order-status-select" value={order.status} disabled={updatingId === order.id} onChange={(event) => void updateStatus(order, event.target.value as OrderStatus)} aria-label={`Status ${order.id}`}>
+                        {orderStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                      </select>
                     </td>
                   </tr>
                 ))}

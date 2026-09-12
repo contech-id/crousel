@@ -36,29 +36,23 @@ export function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [orders, setOrders] = useState<Array<{ id: string; date: string; total: number; status: string; payment_status?: string }>>(() => {
-    try {
-      return JSON.parse(window.localStorage.getItem("crousel-orders") || "[]") as Array<{
-        id: string;
-        date: string;
-        total: number;
-        status: string;
-      }>;
-    } catch {
-      return [];
-    }
-  });
+  const [orders, setOrders] = useState<Array<{ id: string; date: string; total: number; status: string; payment_status?: string }>>([]);
 
   useEffect(() => {
     const token = window.localStorage.getItem("crousel-api-token");
     if (!token) return;
-    fetch(`${import.meta.env.VITE_API_URL}/orders`, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } })
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return (await response.json()) as { data?: Array<{ id: string; date: string; total: number; status: string; payment_status?: string }> };
-      })
-      .then((payload) => { if (payload?.data) setOrders(payload.data); })
-      .catch(() => undefined);
+    const loadOrders = () => {
+      void fetch(`${import.meta.env.VITE_API_URL}/orders`, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } })
+        .then(async (response) => {
+          if (!response.ok) return null;
+          return (await response.json()) as { data?: Array<{ id: string; date: string; total: number; status: string; payment_status?: string }> };
+        })
+        .then((payload) => { if (payload?.data) setOrders(payload.data); })
+        .catch(() => undefined);
+    };
+    loadOrders();
+    const timer = window.setInterval(loadOrders, 15000);
+    return () => window.clearInterval(timer);
   }, []);
   const [activeTab, setActiveTab] = useState<"account" | "orders">(() =>
     new URLSearchParams(window.location.search).get("tab") === "orders" ? "orders" : "account",

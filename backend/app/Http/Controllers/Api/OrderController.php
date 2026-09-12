@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    private const STATUSES = ['Menunggu pembayaran', 'Diproses', 'Dikemas', 'Dikirim', 'Selesai', 'Dibatalkan'];
+
     public function index(Request $request): JsonResponse
     {
         $query = Order::query()->latest();
@@ -58,6 +60,14 @@ class OrderController extends Controller
         $data['order_number'] = 'CRS-'.now()->format('ymd').'-'.str_pad((string) (Order::count() + 1), 4, '0', STR_PAD_LEFT);
         $order = Order::create($data);
         return response()->json(['message' => 'Pesanan berhasil dibuat.', 'data' => $this->present($order)], 201);
+    }
+
+    public function updateStatus(Request $request, string $orderId): JsonResponse
+    {
+        $data = $request->validate(['status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)]]);
+        $order = Order::where('order_number', $orderId)->firstOrFail();
+        $order->update(['status' => $data['status']]);
+        return response()->json(['message' => 'Status pesanan berhasil diperbarui.', 'data' => $this->present($order->fresh())]);
     }
 
     private function present(Order $order): array
