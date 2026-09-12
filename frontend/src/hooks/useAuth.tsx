@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 export type UserProfile = {
   fullName: string;
+  email: string;
   phone: string;
   password: string;
   birthDate: string;
@@ -20,6 +21,7 @@ export type UserProfile = {
 };
 type ApiUser = {
   name: string;
+  email: string;
   whatsapp: string;
   birth_date?: string | null;
   gender?: string | null;
@@ -38,8 +40,8 @@ type ApiUser = {
 type AuthContextValue = {
   user: UserProfile | null;
   isAuthenticated: boolean;
-  login: (phone: string, password: string) => Promise<boolean>;
-  register: (profile: Pick<UserProfile, "fullName" | "phone" | "password">) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (profile: Pick<UserProfile, "fullName" | "email" | "phone" | "password">) => Promise<boolean>;
   updateProfile: (profile: UserProfile, avatar?: File | null) => Promise<boolean>;
   logout: () => void;
 };
@@ -52,6 +54,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 function mapApiUser(user: ApiUser, password = ""): UserProfile {
   return {
     fullName: user.name ?? "",
+    email: user.email ?? "",
     phone: user.whatsapp ?? "",
     password,
     birthDate: user.birth_date ?? "",
@@ -129,15 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       isAuthenticated: Boolean(user),
-      login: async (phone, password) => {
+      login: async (email, password) => {
         try {
           const response = await fetch(`${apiUrl}/auth/login`, {
             method: "POST",
             headers: { Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify({ whatsapp: phone.trim(), password }),
+            body: JSON.stringify({ email: email.trim(), password }),
           });
           const payload = await parseResponse<{ data: { user: ApiUser; token: string } }>(response);
           const profile = mapApiUser(payload.data.user, password);
+          window.localStorage.removeItem("crousel-cart");
           saveUser(profile);
           window.localStorage.setItem(sessionKey, "active");
           window.localStorage.setItem(tokenKey, payload.data.token);
@@ -145,15 +149,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return true;
         } catch {
           const storedUser = readUser();
-          if (!storedUser || storedUser.phone !== phone || storedUser.password !== password) return false;
+          if (!storedUser || storedUser.email !== email || storedUser.password !== password) return false;
           window.localStorage.setItem(sessionKey, "active");
           setUser(storedUser);
           return true;
         }
       },
-      register: async ({ fullName, phone, password }) => {
+      register: async ({ fullName, email, phone, password }) => {
         const fallback: UserProfile = {
           fullName,
+          email,
           phone,
           password,
           birthDate: "",
@@ -174,16 +179,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const response = await fetch(`${apiUrl}/auth/register`, {
             method: "POST",
             headers: { Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify({ name: fullName, whatsapp: phone.trim(), password }),
+            body: JSON.stringify({ name: fullName, email: email.trim(), whatsapp: phone.trim(), password }),
           });
           const payload = await parseResponse<{ data: { user: ApiUser; token: string } }>(response);
           const profile = mapApiUser(payload.data.user, password);
+          window.localStorage.removeItem("crousel-cart");
           saveUser(profile);
           window.localStorage.setItem(sessionKey, "active");
           window.localStorage.setItem(tokenKey, payload.data.token);
           setUser(profile);
           return true;
         } catch {
+          window.localStorage.removeItem("crousel-cart");
           saveUser(fallback);
           window.localStorage.setItem(sessionKey, "active");
           setUser(fallback);
@@ -197,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const loginResponse = await fetch(`${apiUrl}/auth/login`, {
               method: "POST",
               headers: { Accept: "application/json", "Content-Type": "application/json" },
-              body: JSON.stringify({ whatsapp: profile.phone, password: profile.password }),
+              body: JSON.stringify({ email: profile.email, password: profile.password }),
             });
             const loginPayload = await parseResponse<{ data: { token: string } }>(loginResponse);
             token = loginPayload.data.token;
@@ -216,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const body = new FormData();
           const fields: Record<string, string> = {
             name: profile.fullName,
+            email: profile.email,
             whatsapp: profile.phone,
             birth_date: profile.birthDate,
             gender:
@@ -256,6 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout: () => {
         window.localStorage.removeItem(sessionKey);
         window.localStorage.removeItem(tokenKey);
+        window.localStorage.removeItem("crousel-cart");
         setUser(null);
       },
     }),

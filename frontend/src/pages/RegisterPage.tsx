@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/atoms/ui/button";
@@ -14,15 +14,18 @@ function navigate(path: string) {
 export function RegisterPage() {
   const { register } = useAuth();
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [error, setError] = useState("");
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (password.length < 6) return setError("Password minimal 6 karakter.");
     if (password !== confirmation) return setError("Konfirmasi password belum sama.");
-    await register({ fullName: fullName.trim(), phone: phone.trim(), password });
+    await register({ fullName: fullName.trim(), email: email.trim(), phone: phone.trim(), password });
     navigate("/profil");
   };
   return (
@@ -35,7 +38,7 @@ export function RegisterPage() {
             Simpan detail pengiriman dan nikmati checkout yang lebih cepat.
           </p>
           <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
-            <label className="text-sm font-medium">
+            <label className="relative text-sm font-medium">
               Nama lengkap
               <input
                 required
@@ -45,8 +48,19 @@ export function RegisterPage() {
                 placeholder="Nama lengkap"
               />
             </label>
+            <label className="relative text-sm font-medium">
+              Email
+              <input
+                required
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                placeholder="Alamat email"
+              />
+            </label>
             <label className="text-sm font-medium">
-              Nomor WhatsApp +62
+              Nomor WhatsApp
               <WhatsappInput required value={phone} onChange={setPhone} className="mt-2 h-12" />
             </label>
             <label className="text-sm font-medium">
@@ -56,21 +70,27 @@ export function RegisterPage() {
                 minLength={6}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                type="password"
-                className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                type={showPassword ? "text" : "password"}
+                className="h-12 w-full rounded-xl border border-input bg-background px-4 pr-12 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                 placeholder="Minimal 6 karakter"
               />
+              <button type="button" aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} onClick={() => setShowPassword((value) => !value)} className="absolute right-0 top-7 flex h-12 w-12 items-center justify-center text-muted-foreground hover:text-foreground">
+                {showPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
+              </button>
             </label>
-            <label className="text-sm font-medium">
+            <label className="relative text-sm font-medium">
               Konfirmasi password
               <input
                 required
                 value={confirmation}
                 onChange={(event) => setConfirmation(event.target.value)}
-                type="password"
-                className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                type={showConfirmation ? "text" : "password"}
+                className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 pr-12 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                 placeholder="Ulangi password"
               />
+              <button type="button" aria-label={showConfirmation ? "Sembunyikan password" : "Tampilkan password"} onClick={() => setShowConfirmation((value) => !value)} className="absolute right-0 top-7 flex h-12 w-12 items-center justify-center text-muted-foreground hover:text-foreground">
+                {showConfirmation ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
+              </button>
             </label>
             {error && (
               <p role="alert" className="text-sm text-destructive">

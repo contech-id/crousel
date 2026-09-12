@@ -20,6 +20,7 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:100'],
+            'email' => ['required', 'string', 'email', 'unique:users,email'],
             'whatsapp' => ['required', 'string', 'regex:/^62[0-9]{8,13}$/', 'unique:users,whatsapp'],
             'password' => ['required', 'string', 'min:8', 'max:72'],
         ]);
@@ -38,17 +39,15 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
-        $request->merge(['whatsapp' => self::normalizeWhatsapp($request->input('whatsapp'))]);
-
         $validated = $request->validate([
-            'whatsapp' => ['required', 'string', 'regex:/^62[0-9]{8,13}$/'],
+            'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('whatsapp', $validated['whatsapp'])->first();
+        $user = User::where('email', $validated['email'])->first();
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'whatsapp' => ['Nomor WhatsApp atau password salah.'],
+                'email' => ['Email atau password salah.'],
             ]);
         }
 
@@ -80,6 +79,7 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'min:2', 'max:100'],
+            'email' => ['sometimes', 'required', 'string', 'email', 'unique:users,email,'.$request->user()->id],
             'whatsapp' => ['sometimes', 'required', 'string', 'regex:/^62[0-9]{8,13}$/', 'unique:users,whatsapp,'.$request->user()->id],
             'birth_date' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
             'gender' => ['sometimes', 'nullable', 'string', 'in:male,female,other'],

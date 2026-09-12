@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import * as React from "react";
 import "./App.css";
 
-type Page = "home" | "customers" | "products" | "categories" | "settings" | "account" | "orders" | "shipping-status";
+type Page = "home" | "customers" | "products" | "categories" | "settings" | "account" | "orders" | "shipping-status" | "social-media";
 type OrderStatus = "Menunggu pembayaran" | "Diproses" | "Dikemas" | "Dikirim" | "Selesai" | "Dibatalkan";
 type OrderProduct = {
   name: string;
@@ -49,6 +49,9 @@ type Customer = {
   whatsapp: string;
   created_at: string;
   province?: string | null;
+  regency?: string | null;
+  district?: string | null;
+  village?: string | null;
 };
 type ProductCategory = {
   id: number;
@@ -114,6 +117,7 @@ type CustomizationData = {
   about_image: string | null;
   story_images: Array<string | null>;
 };
+type SocialMediaLink = { id: number; platform: string; account_name: string; url: string };
 
 const API_BASE = import.meta.env.VITE_API_URL;
 const emptyProduct: ProductForm = {
@@ -275,7 +279,7 @@ function AdminShellEnhanced({ page, onNavigate, onLogout }: { page: Page; onNavi
     }).catch(() => undefined);
     setNotifications((items) => items.map((current) => (current.id === item.id ? { ...current, read_at: new Date().toISOString() } : current)));
   };
-  const title = page === "home" ? "Overview" : page === "products" ? "Product catalogue" : page === "categories" ? "Kategori produk" : page === "customers" ? "Customer directory" : page === "account" ? "Akun admin" : page === "orders" ? "Pesanan" : page === "shipping-status" ? "Status barang" : "Pengaturan toko";
+  const title = page === "home" ? "Overview" : page === "products" ? "Product catalogue" : page === "categories" ? "Kategori produk" : page === "customers" ? "Customer directory" : page === "account" ? "Akun admin" : page === "orders" ? "Pesanan" : page === "shipping-status" ? "Status barang" : page === "social-media" ? "Sosial media" : "Pengaturan toko";
   return (
     <div className="admin-shell">
       <aside className={`sidebar ${mobileSidebar ? "sidebar-open" : ""}`}>
@@ -297,6 +301,7 @@ function AdminShellEnhanced({ page, onNavigate, onLogout }: { page: Page; onNavi
           <NavItem icon="K" label="Kategori" active={page === "categories"} onClick={() => nav("categories")} />
           <NavItem icon="O" label="Pesanan" active={page === "orders"} onClick={() => nav("orders")} />
           <NavItem icon="T" label="Status barang" active={page === "shipping-status"} onClick={() => nav("shipping-status")} />
+          <NavItem icon="@" label="Sosial media" active={page === "social-media"} onClick={() => nav("social-media")} />
           <NavItem icon="S" label="Pengaturan" active={page === "settings"} onClick={() => nav("settings")} />
           <NavItem icon="A" label="Akun admin" active={page === "account"} onClick={() => nav("account")} />
         </nav>
@@ -360,6 +365,7 @@ function AdminShellEnhanced({ page, onNavigate, onLogout }: { page: Page; onNavi
           {page === "account" && <AccountPage />}
           {page === "orders" && <OrdersPage />}
           {page === "shipping-status" && <ShippingStatusPage />}
+          {page === "social-media" && <SocialMediaPage />}
         </main>
       </div>
     </div>
@@ -379,20 +385,40 @@ function NavItem({ icon, label, active, onClick }: { icon: string; label: string
 function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   useEffect(() => {
-    void Promise.all([apiRequest<{ data: Product[] }>("/products"), apiRequest<{ data: Customer[] }>("/users")])
-      .then(([productData, customerData]) => {
+    void Promise.all([apiRequest<{ data: Product[] }>("/products"), apiRequest<{ data: Customer[] }>("/users"), apiRequest<{ data: AdminOrder[] }>("/admin/orders")])
+      .then(([productData, customerData, orderData]) => {
         setProducts(productData.data);
         setCustomers(customerData.data);
+        setOrders(orderData.data);
       })
       .catch(() => undefined);
   }, []);
-  const months = ["OKT", "NOV", "DES", "JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGT", "SEP"];
+  const paidOrders = orders.filter((order) => order.payment_status === "paid" || order.transaction_status === "settlement");
+  const activeOrders = orders.filter((order) => order.status !== "Dibatalkan" && order.payment_status !== "cancelled");
+  const revenue = paidOrders.reduce((sum, order) => sum + Number(order.gross_amount ?? order.total ?? 0), 0);
+  const categoryCounts = orders.flatMap((order) => (Array.isArray(order.products) ? order.products : [])).reduce<Record<string, number>>((counts, item) => {
+    const matched = products.find((product) => product.name.toLowerCase() === item.name.toLowerCase());
+    const category = matched?.category ?? "Lainnya";
+    counts[category] = (counts[category] ?? 0) + (item.quantity ?? 1);
+    return counts;
+  }, {});
+  const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0];
+  const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGT", "SEP", "OKT", "NOV", "DES"];
+  const now = new Date();
+  const chartMonths = Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (11 - index), 1);
+    const total = paidOrders.filter((order) => { const [day, month, year] = order.date.split("/").map(Number); return year === date.getFullYear() && month === date.getMonth() + 1 && day > 0; }).reduce((sum, order) => sum + Number(order.gross_amount ?? order.total ?? 0), 0);
+    return { label: monthNames[date.getMonth()], total };
+  });
+  const maxChart = Math.max(...chartMonths.map((item) => item.total), 1);
+  const recentOrders = orders.slice(0, 5);
   return (
     <div className="home-dashboard">
       <section className="home-stat-grid">
-        <HomeStat label="Pendapatan" value="Rp 0" note="dari pesanan dibayar" tone="blue" />
-        <HomeStat label="Pesanan" value="0" note="pesanan non-batal" tone="pink" />
+        <HomeStat label="Pendapatan" value={`Rp ${new Intl.NumberFormat("id-ID").format(revenue)}`} note="dari pesanan dibayar" tone="blue" />
+        <HomeStat label="Pesanan" value={String(activeOrders.length)} note="pesanan non-batal" tone="pink" />
         <HomeStat label="Produk aktif" value={String(products.length)} note="siap ditampilkan" tone="orange" />
         <HomeStat label="Pelanggan" value={String(customers.length)} note="sudah bertransaksi" tone="blue" />
       </section>
@@ -403,27 +429,27 @@ function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
               <h2>Performa 12 bulan</h2>
               <p>Nilai transaksi dari pesanan yang telah dibayar.</p>
             </div>
-            <span className="year-pill">2026</span>
+            <span className="year-pill">12 bulan</span>
           </div>
           <div className="chart-area">
-            {months.map((month) => (
-              <div className="chart-column" key={month}>
-                <strong>0</strong>
-                <div className="chart-bar" />
-                <small>{month}</small>
+            {chartMonths.map((month) => (
+              <div className="chart-column" key={`${month.label}-${month.total}`}>
+                <strong>{month.total ? `${Math.round(month.total / 1000)}K` : "0"}</strong>
+                <div className="chart-bar" style={{ height: `${Math.max(4, (month.total / maxChart) * 100)}%` }} title={`Rp ${new Intl.NumberFormat("id-ID").format(month.total)}`} />
+                <small>{month.label}</small>
               </div>
             ))}
           </div>
         </article>
         <article className="panel category-card">
           <h2>Kategori teratas</h2>
-          <p className="empty-home-text">{products.length ? "Kategori produk akan tampil setelah ada transaksi." : "Belum ada data produk terjual."}</p>
+          <p className="empty-home-text">{topCategory ? `${topCategory[0]} (${topCategory[1]} item)` : "Belum ada data produk terjual."}</p>
         </article>
       </section>
       <article className="panel orders-card">
         <div className="home-panel-heading">
           <h2>Pesanan terbaru</h2>
-          <button className="link-button" onClick={() => onNavigate("customers")}>
+          <button className="link-button" onClick={() => onNavigate("orders")}>
             Lihat semua
           </button>
         </div>
@@ -435,7 +461,7 @@ function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
             <span>TOTAL</span>
             <span>STATUS</span>
           </div>
-          <div className="orders-empty">Belum ada pesanan terbaru.</div>
+          {recentOrders.length === 0 ? <div className="orders-empty">Belum ada pesanan terbaru.</div> : recentOrders.map((order) => <div className="orders-row" key={order.id}><span>{order.id}</span><span>{order.customer || "Pelanggan"}</span><span>{Array.isArray(order.products) ? order.products.map((item) => item.name).join(", ") : String(order.products || "-")}</span><strong>Rp {new Intl.NumberFormat("id-ID").format(order.total || 0)}</strong><span className="availability">{order.status}</span></div>)}
         </div>
       </article>
     </div>
@@ -834,6 +860,9 @@ function CustomersPage() {
                   <th>Customer</th>
                   <th>WhatsApp</th>
                   <th>Provinsi</th>
+                  <th>Kabupaten</th>
+                  <th>Kecamatan</th>
+                  <th>Desa</th>
                   <th>Terdaftar</th>
                   <th>Status</th>
                 </tr>
@@ -849,6 +878,9 @@ function CustomersPage() {
                     </td>
                     <td>{customer.whatsapp}</td>
                     <td>{customer.province ?? "—"}</td>
+                    <td>{customer.regency ?? "—"}</td>
+                    <td>{customer.district ?? "—"}</td>
+                    <td>{customer.village ?? "—"}</td>
                     <td>{new Date(customer.created_at).toLocaleDateString("id-ID")}</td>
                     <td>
                       <span className="availability available">Aktif</span>
@@ -1971,5 +2003,24 @@ function EmptyState({ message }: { message: string }) {
       <small>Data akan muncul setelah tersedia di database.</small>
     </div>
   );
+}
+
+function SocialMediaPage() {
+  const [links, setLinks] = useState<SocialMediaLink[]>([]);
+  const [form, setForm] = useState({ platform: "", account_name: "", url: "" });
+  const [editing, setEditing] = useState<number | null>(null);
+  const [message, setMessage] = useState("");
+  const load = () => { void apiRequest<{ data: SocialMediaLink[] }>("/social-media").then((result) => setLinks(result.data)).catch(() => undefined); };
+  useEffect(() => { load(); }, []);
+  const save = async (event: FormEvent) => {
+    event.preventDefault(); setMessage("");
+    try {
+      await apiRequest(editing ? `/admin/social-media/${editing}` : "/admin/social-media", { method: editing ? "PATCH" : "POST", body: JSON.stringify(form) });
+      setForm({ platform: "", account_name: "", url: "" }); setEditing(null); setMessage("Link sosial media tersimpan."); load();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Gagal menyimpan link."); }
+  };
+  const edit = (link: SocialMediaLink) => { setEditing(link.id); setForm({ platform: link.platform, account_name: link.account_name, url: link.url }); };
+  const remove = async (id: number) => { if (!window.confirm("Hapus link ini?")) return; await apiRequest(`/admin/social-media/${id}`, { method: "DELETE" }).catch(() => undefined); load(); };
+  return <section className="settings-layout"><div className="panel settings-main-panel"><form className="product-form settings-form" onSubmit={(event) => void save(event)}><p className="eyebrow">Channel brand</p><h2>{editing ? "Edit sosial media" : "Tambah sosial media"}</h2><Field label="Nama platform" required value={form.platform} onChange={(value) => setForm({ ...form, platform: value })} /><Field label="Nama akun / alamat email" required value={form.account_name} onChange={(value) => setForm({ ...form, account_name: value })} /><Field label="Link redirect" required type="url" value={form.url} onChange={(value) => setForm({ ...form, url: value })} /><div className="form-actions"><button className="primary-button" type="submit">{editing ? "Simpan perubahan" : "Tambah link"}</button>{editing && <button type="button" className="secondary-button" onClick={() => { setEditing(null); setForm({ platform: "", account_name: "", url: "" }); }}>Batal</button>}</div>{message && <p className="muted">{message}</p>}</form></div><div className="panel notification-settings"><h2>Daftar sosial media</h2>{links.length === 0 ? <EmptyState message="Belum ada link sosial media." /> : <div className="settings-list">{links.map((link) => <div className="settings-list-item" key={link.id}><div><strong>{link.platform}</strong><small>{link.account_name}</small><small>{link.url}</small></div><div className="row-actions"><button className="link-button" onClick={() => edit(link)}>Edit</button><button className="link-button danger" onClick={() => void remove(link.id)}>Hapus</button></div></div>)}</div>}</div></section>;
 }
 export default App;

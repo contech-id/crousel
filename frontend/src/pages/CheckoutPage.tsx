@@ -24,7 +24,7 @@ function navigateToPayment(orderId: string) {
 }
 
 export function CheckoutPage() {
-  const { items, subtotal } = useCart();
+  const { items, subtotal, clearCart } = useCart();
   const { user } = useAuth();
   const [shippingId, setShippingId] = useState("pickup");
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([pickupMethod]);
@@ -147,6 +147,7 @@ export function CheckoutPage() {
       });
       const result = await response.json() as { data?: { order_id?: string; snap_token?: string }; message?: string };
       if (!response.ok || !result.data?.order_id || !result.data.snap_token) throw new Error(result.message || "Gagal membuat transaksi pembayaran.");
+      clearCart();
       const snap = await loadMidtransSnap();
       window.localStorage.setItem("crousel-last-order-id", result.data.order_id);
       snap.pay(result.data.snap_token, {

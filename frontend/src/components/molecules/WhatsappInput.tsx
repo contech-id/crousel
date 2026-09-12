@@ -8,9 +8,13 @@ type Props = {
   placeholder?: string;
   required?: boolean;
 };
-export function WhatsappInput({ value, onChange, className = "", placeholder = "82329322353", required }: Props) {
+export function WhatsappInput({ value, onChange, className = "", placeholder = "0823xxxxxxxx", required }: Props) {
   const [focused, setFocused] = useState(false);
-  const toLocal = (phone: string) => phone.replace(/^\+?62/, "");
+  const toLocal = (phone: string) => {
+    const clean = phone.replace(/\D/g, "");
+    if (clean.startsWith("62")) return `0${clean.slice(2)}`;
+    return clean;
+  };
   const [localValue, setLocalValue] = useState(() => toLocal(value));
 
   const displayValue = focused ? localValue : toLocal(value);
@@ -19,7 +23,6 @@ export function WhatsappInput({ value, onChange, className = "", placeholder = "
     <div
       className={`flex items-center overflow-hidden rounded-xl border border-input bg-background focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30 ${className}`}
     >
-      <span className="border-r border-input px-3 text-sm font-semibold text-muted-foreground">+62</span>
       <input
         required={required}
         type="tel"

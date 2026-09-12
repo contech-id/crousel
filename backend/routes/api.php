@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\CheckoutPaymentController;
 use App\Http\Controllers\Api\MidtransWebhookController;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\SocialMediaController;
+use App\Http\Controllers\Api\ContactController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -24,6 +27,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/categories', [ProductCategoryController::class, 'index']);
     Route::get('/categories/{category}', [ProductCategoryController::class, 'show']);
     Route::get('/settings/customization', [SettingsController::class, 'customization']);
+    Route::get('/social-media', [SocialMediaController::class, 'index']);
+    Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::post('/webhooks/midtrans', MidtransWebhookController::class);
     Route::get('/locations/provinces', [LocationController::class, 'provinces']);
@@ -60,6 +65,11 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
         Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/cart', [CartController::class, 'index']);
+        Route::post('/cart', [CartController::class, 'store']);
+        Route::delete('/cart', [CartController::class, 'clear']);
+        Route::patch('/cart/{cartItem}', [CartController::class, 'update']);
+        Route::delete('/cart/{cartItem}', [CartController::class, 'destroy']);
         Route::post('/checkout/payment', [CheckoutPaymentController::class, 'store']);
         Route::get('/orders/{orderId}', [CheckoutPaymentController::class, 'show']);
     });
@@ -75,5 +85,8 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/categories/{category}', [ProductCategoryController::class, 'destroy']);
         Route::put('/customization', [SettingsController::class, 'updateCustomization']);
         Route::post('/customization', [SettingsController::class, 'updateCustomization']);
+        Route::post('/social-media', [SocialMediaController::class, 'store']);
+        Route::patch('/social-media/{socialMedia}', [SocialMediaController::class, 'update']);
+        Route::delete('/social-media/{socialMedia}', [SocialMediaController::class, 'destroy']);
     });
 });

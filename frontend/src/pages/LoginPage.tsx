@@ -1,11 +1,9 @@
-import { ArrowRight, LockKeyhole, Phone } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Phone } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/atoms/ui/button";
 import { AppShell } from "@/components/templates/AppShell";
 import { useAuth } from "@/hooks/useAuth";
-import { WhatsappInput } from "@/components/molecules/WhatsappInput";
-import { normalizeWhatsapp } from "@/lib/locations";
 
 function navigate(path: string) {
   window.history.pushState({}, "", path);
@@ -14,15 +12,16 @@ function navigate(path: string) {
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const redirect = new URLSearchParams(window.location.search).get("redirect") || "/profil";
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!(await login(normalizeWhatsapp(phone), password))) {
-      setError("Nomor WhatsApp atau password belum sesuai.");
+    if (!(await login(email, password))) {
+      setError("Email atau password belum sesuai.");
       return;
     }
     navigate(redirect);
@@ -42,23 +41,21 @@ export function LoginPage() {
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Akun Crousel</p>
           <h1 className="mt-3 text-4xl font-black tracking-tight">Masuk</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Gunakan nomor WhatsApp dan password untuk melanjutkan.
+            Gunakan email dan password untuk melanjutkan.
           </p>
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <label className="block text-sm font-medium">
-              Nomor WhatsApp
-              <WhatsappInput required value={phone} onChange={setPhone} className="mt-2 h-12" />
+              Email
+              <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Masukkan email" className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             </label>
             <label className="block text-sm font-medium">
               Password
-              <input
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                type="password"
-                placeholder="Masukkan password"
-                className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-              />
+              <div className="relative mt-2">
+                <input required value={password} onChange={(event) => setPassword(event.target.value)} type={showPassword ? "text" : "password"} placeholder="Masukkan password" className="h-12 w-full rounded-xl border border-input bg-background px-4 pr-12 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+                <button type="button" aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} onClick={() => setShowPassword((value) => !value)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground hover:text-foreground">
+                  {showPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
+                </button>
+              </div>
             </label>
             {error && (
               <p role="alert" className="text-sm text-destructive">

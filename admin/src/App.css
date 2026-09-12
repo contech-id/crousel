@@ -73,6 +73,9 @@ h2 { font-size: 1.15rem; line-height: 1.25; font-weight: 400; }
 .notification-settings { padding: 26px; }
 .notification-settings h2 { margin: 7px 0; }
 .settings-list { display: grid; gap: 0; margin: 22px 0; }
+.settings-list-item { display:flex; align-items:center; justify-content:space-between; gap:14px; border-bottom:1px solid var(--line); padding:14px 0; }
+.settings-list-item > div:first-child { display:grid; gap:4px; min-width:0; }
+.settings-list-item small { color:#858995; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:260px; }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding: 17px 0; }
 .toggle-row strong, .toggle-row small { display: block; }
 .toggle-row strong { color: var(--ink); font-size: 13px; }.toggle-row small { margin-top: 4px; color: var(--muted); font-size: 11px; }
@@ -83,6 +86,10 @@ h2 { font-size: 1.15rem; line-height: 1.25; font-weight: 400; }
 @media (max-width: 900px) { .settings-content-grid { grid-template-columns: 1fr; }.store-summary { order: -1; } }
 @media (max-width: 1050px) { .home-stat-grid { grid-template-columns: repeat(2, 1fr); }.home-main-grid { grid-template-columns: 1fr; }.category-card { min-height: 220px; } }
 @media (max-width: 640px) { .home-stat-grid { grid-template-columns: 1fr; }.performance-card, .category-card, .orders-card { padding: 22px; }.chart-area { gap: 6px; }.orders-head { min-width: 620px; }.orders-table { overflow-x: auto; }.orders-empty { min-width: 620px; } }
+.orders-row { display:grid; grid-template-columns:.45fr 1.5fr 1.6fr .8fr .8fr; align-items:center; gap:0; border-bottom:1px solid var(--line); padding:15px 0; color:#61615d; font-size:12px; }
+.orders-row > span:nth-child(3) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px; }
+.orders-row strong { color:var(--ink); }
+@media (max-width: 640px) { .orders-row { min-width:620px; } }
 @media (max-width: 640px) { .page-content { padding-top: 20px; } }
 @media (max-width: 760px) { .settings-page-wrap > .settings-account-button { position: static; width: 100%; margin-top: 12px; } }
 .color-toggle-field { display: grid; gap: 7px; color: #555550; font-size: 10px; font-weight: 800; }

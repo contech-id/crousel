@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\CartItem;
 use App\Services\MidtransService;
 use App\Services\RajaOngkirService;
 use Illuminate\Database\DatabaseManager;
@@ -124,6 +125,7 @@ class CheckoutPaymentController extends Controller
                     'postal_code' => $user->postal_code,
                 ]);
                 $order->update(['snap_token' => $snap['token']]);
+                CartItem::where('user_id', $user->id)->delete();
                 return ['order_id' => $order->order_number, 'snap_token' => $snap['token']];
             });
         } catch (RuntimeException $exception) {

@@ -9,6 +9,7 @@ import { WhatsappInput } from "@/components/molecules/WhatsappInput";
 
 const emptyProfile: UserProfile = {
   fullName: "",
+  email: "",
   phone: "",
   password: "",
   birthDate: "",
@@ -104,8 +105,7 @@ export function ProfilePage() {
   };
   const signOut = () => {
     logout();
-    window.history.pushState({}, "", "/");
-    window.dispatchEvent(new PopStateEvent("popstate"));
+    window.location.href = "/";
   };
   const displayedAvatar = avatarPreview || form.avatarUrl;
 
@@ -161,6 +161,7 @@ export function ProfilePage() {
                 </div>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   <Field label="Nama lengkap" value={form.fullName} onChange={(value) => update("fullName", value)} />
+                  <Field label="Email" type="email" value={form.email} onChange={(value) => update("email", value)} />
                   <label className="text-sm font-medium">
                     Nomor WhatsApp
                     <WhatsappInput

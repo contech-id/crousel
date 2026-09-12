@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 const brandLinks = [
   { label: 'Beranda', href: '/' },
   { label: 'Belanja', href: '/belanja' },
@@ -12,12 +14,25 @@ const companyLinks = [
 ]
 
 export function FooterSection() {
+  const [profile, setProfile] = useState<{
+    address?: string
+    whatsapp?: string
+    store_email?: string
+    province?: string
+    regency?: string
+    district?: string
+    village?: string
+    location_landmark?: string
+  } | null>(null)
+  useEffect(() => { fetch(`${import.meta.env.VITE_API_URL}/settings`).then((r) => r.json()).then((p: { data?: { profile?: typeof profile } }) => setProfile(p.data?.profile ?? null)).catch(() => undefined) }, [])
+  const phone = profile?.whatsapp ? profile.whatsapp.replace(/^62/, '0') : '0821 2028 2823'
   return (
     <footer className="bg-foreground text-background" data-scroll-static>
       <div className="mx-auto grid max-w-[90rem] gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 sm:py-16 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-12 lg:px-8 lg:py-20">
         <div className="max-w-sm">
-          <a href="/" className="inline-flex" aria-label="Beranda Crousel Official">
-            <img src="/logo.svg" alt="Crousel" className="h-12 w-auto" />
+          <a href="/" className="inline-flex items-center gap-3" aria-label="Beranda Crousel Official">
+            <img src="/images/logo-putih.png" alt="Crousel" className="h-12 w-auto" />
+            <span className="text-2xl font-bold">Crousel Official</span>
           </a>
           <p className="mt-6 max-w-xs text-sm leading-6 text-background/60">
             Sandal casual yang dirancang dengan passion untuk menemani setiap cerita dan aktivitasmu.
@@ -30,9 +45,21 @@ export function FooterSection() {
         <div>
           <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-background/80">Kontak</h2>
           <address className="mt-6 space-y-3 text-sm not-italic leading-6 text-background/60">
-            <p>Muara Karang, Jakarta Utara</p>
-            <a href="tel:+6282120282823" className="block transition-colors hover:text-background">+62 821 2028 2823</a>
-            <a href="mailto:hello@crousel.id" className="block transition-colors hover:text-background">hello@crousel.id</a>
+            <div className="space-y-1">
+              {profile?.address ? (
+                <>
+                  <span className="block">{profile.address}</span>
+                  {profile.location_landmark && <span className="block text-background/80">{profile.location_landmark}</span>}
+                  <span className="block">
+                    {[profile.village, profile.district, profile.regency, profile.province].filter(Boolean).join(', ')}
+                  </span>
+                </>
+              ) : (
+                'Alamat toko belum diatur'
+              )}
+            </div>
+            <a href={`tel:${profile?.whatsapp || '6282120282823'}`} className="block transition-colors hover:text-background">{phone}</a>
+            <a href={`mailto:${profile?.store_email || 'hello@crousel.id'}`} className="block transition-colors hover:text-background">{profile?.store_email || 'hello@crousel.id'}</a>
           </address>
         </div>
       </div>
