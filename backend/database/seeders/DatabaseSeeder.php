@@ -17,9 +17,21 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // User::factory()->create([
+        //     'name' => 'Test User',
+        //     'email' => 'test@example.com',
+        // ]);
+
+        \App\Models\Admin::firstOrCreate(
+            ['email' => 'admin@crousel.id'],
+            [
+                'name' => 'Admin',
+                'username' => 'admin',
+                'phone' => '082378746587',
+                'password' => \Illuminate\Support\Facades\Hash::make('admin123'),
+                'role' => 'admin',
+                'is_active' => true,
+            ]
+        );
     }
 }

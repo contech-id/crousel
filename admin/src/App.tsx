@@ -249,9 +249,6 @@ function LoginPageEnhanced({ onLogin }: { onLogin: () => void }) {
               {loading ? "Memproses..." : "Masuk ke dashboard"}
             </button>
           </form>
-          <div className="demo-hint">
-            <span className="hint-dot" /> Demo: <strong>admin@crousel.id</strong> · <strong>admin123</strong>
-          </div>
         </div>
       </section>
     </main>
