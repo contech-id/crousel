@@ -19,11 +19,32 @@ const navLinks = [
 export function StoreNavbar() {
   const { itemCount } = useCart()
   const { isAuthenticated } = useAuth()
+  const [storeInfo, setStoreInfo] = useState({ phone: '+62 821 2028 2823', email: 'hello@crousel.id', whatsappLink: '+6282120282823' })
   const [announcementVisible, setAnnouncementVisible] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/')
   const announcementState = useRef(true)
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/settings`)
+      .then(res => res.json())
+      .then(payload => {
+        if (payload?.data?.profile) {
+          const profile = payload.data.profile;
+          let rawPhone = profile.whatsapp || '';
+          if (rawPhone.startsWith('62')) rawPhone = '+' + rawPhone;
+          const formattedPhone = rawPhone.replace(/(\+62)(\d{3,4})(\d{4})(\d{0,4})/, '$1 $2 $3 $4').trim();
+          setStoreInfo({
+            phone: formattedPhone || rawPhone,
+            email: profile.store_email || 'hello@crousel.id',
+            whatsappLink: rawPhone || '+6282120282823'
+          });
+        }
+      })
+      .catch(() => undefined)
+  }, [])
+
   const closeSearch = useCallback(() => setSearchOpen(false), [])
 
   useEffect(() => {
@@ -73,8 +94,8 @@ export function StoreNavbar() {
       >
         <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-4 py-2.5 text-[11px] font-medium sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 sm:gap-6">
-            <a href="tel:+6282120282823" className="hidden items-center gap-1.5 transition-opacity hover:opacity-80 sm:inline-flex"><Phone aria-hidden="true" className="size-3" /> +62 821 2028 2823</a>
-            <a href="mailto:hello@crousel.id" className="hidden items-center gap-1.5 transition-opacity hover:opacity-80 md:inline-flex"><Mail aria-hidden="true" className="size-3" /> hello@crousel.id</a>
+            <a href={`tel:${storeInfo.whatsappLink}`} className="hidden items-center gap-1.5 transition-opacity hover:opacity-80 sm:inline-flex"><Phone aria-hidden="true" className="size-3" /> {storeInfo.phone}</a>
+            <a href={`mailto:${storeInfo.email}`} className="hidden items-center gap-1.5 transition-opacity hover:opacity-80 md:inline-flex"><Mail aria-hidden="true" className="size-3" /> {storeInfo.email}</a>
             <span className="inline-flex items-center gap-1.5"><BadgeCheck aria-hidden="true" className="size-3" /> Toko Resmi Crousel</span>
           </div>
           <span className="shrink-0 font-semibold">Gratis ongkir min. Rp500K <span aria-hidden="true">→</span></span>

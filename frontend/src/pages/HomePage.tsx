@@ -1,4 +1,4 @@
-import { ArrowRight, Play, Sparkles, Star } from "lucide-react";
+import { ArrowRight, Sparkles, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import heroImage from "@/assets/hero.png";
@@ -57,14 +57,8 @@ export function HomePage({ customization }: { customization: StoreCustomization 
               </Button>
               <a
                 href="#collections"
-                className="group inline-flex items-center gap-2 text-sm font-semibold"
+                className="px-8 text-sm font-semibold"
               >
-                <span className="flex size-10 items-center justify-center rounded-full border border-border bg-background">
-                  <Play
-                    aria-hidden="true"
-                    className="ml-0.5 size-3.5 fill-current"
-                  />
-                </span>{" "}
                 Lihat koleksi
               </a>
             </div>
@@ -72,7 +66,7 @@ export function HomePage({ customization }: { customization: StoreCustomization 
               <div className="text-xs leading-5 text-muted-foreground">
                 Dipercaya oleh
                 <br />
-                <strong className="text-foreground">10.000+ langkah</strong>
+                <strong className="text-foreground">10.000+ customer</strong>
               </div>
               <div className="h-9 w-px bg-border" />
               <div className="flex items-center gap-1 text-secondary-foreground">
@@ -80,7 +74,7 @@ export function HomePage({ customization }: { customization: StoreCustomization 
                   <Star
                     key={index}
                     aria-hidden="true"
-                    className="size-3.5 fill-secondary"
+                    className="size-3.5 text-yellow-500 fill-yellow-500"
                   />
                 ))}
                 <span className="ml-1 text-xs font-semibold text-foreground">
@@ -97,7 +91,7 @@ export function HomePage({ customization }: { customization: StoreCustomization 
               className="relative z-10 w-[94%] max-w-[680px] object-contain drop-shadow-[0_30px_25px_rgba(0,0,0,0.2)]"
             />
             <span className="absolute bottom-[10%] left-[5%] z-20 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-background">
-              Crousel / 01
+              Crousel Official
             </span>
           </div>
         </div>
@@ -120,22 +114,22 @@ export function HomePage({ customization }: { customization: StoreCustomization 
               Katalog produk
             </h2>
           </div>
-          <a href="/belanja" className="hidden rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground sm:inline-flex" data-aos="fade-left" data-aos-delay="100">Lihat katalog</a>
+          <a href="/belanja" className="hidden rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground sm:inline-flex" data-aos="fade-up" data-aos-delay="100">Lihat katalog</a>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-5 lg:grid-cols-5">
           {loading
             ? Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} data-aos="fade-up" data-aos-delay={String((index % 5) * 100)}>
-                  <ProductSkeleton />
-                </div>
-              ))
+              <div key={index} data-aos="fade-up" data-aos-delay={String((index % 5) * 100)}>
+                <ProductSkeleton />
+              </div>
+            ))
             : products.slice(0, 10).map((product, index) => (
-                <div key={product.slug} data-aos="fade-up" data-aos-delay={String((index % 5) * 100)}>
-                  <ProductCard product={product} />
-                </div>
-              ))}
+              <div key={product.slug} data-aos="fade-up" data-aos-delay={String((index % 5) * 100)}>
+                <ProductCard product={product} />
+              </div>
+            ))}
         </div>
-        <a href="/belanja" className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground sm:hidden">Lihat katalog</a>
+        <a href="/belanja" className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground sm:hidden" data-aos="fade-up">Lihat katalog</a>
       </section>
 
       <section
@@ -170,7 +164,7 @@ export function HomePage({ customization }: { customization: StoreCustomization 
                 <img
                   src={customization.about_image ?? heroImage}
                   alt="Produk sandal Crousel"
-                  className="h-56 w-full object-contain sm:h-64"
+                  className="h-56 w-56 rounded-xl mx-auto object-contain sm:h-64"
                 />
                 <span className="absolute right-5 top-5 rounded-full bg-background px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
                   Sejak 2020
@@ -184,7 +178,7 @@ export function HomePage({ customization }: { customization: StoreCustomization 
               10.000+
             </p>
             <p className="relative mt-2 text-sm text-background/60">
-              langkah bahagia bersama Crousel
+              customer bersama Crousel
             </p>
             <div className="relative mt-8 flex flex-wrap gap-2">
               {["Sandal casual", "Unisex", "Nyaman", "Stylish", "Kids"].map(

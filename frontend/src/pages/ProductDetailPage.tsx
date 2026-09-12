@@ -14,7 +14,7 @@ import { ProductGallery } from '@/components/molecules/ProductGallery'
 import { SizeGuideTable } from '@/components/molecules/SizeGuideTable'
 import { ProductDetailSkeleton } from '@/components/organisms/ProductDetailSkeleton'
 import { AppShell } from '@/components/templates/AppShell'
-import { formatPrice, priceToNumber, useCart } from '@/hooks/useCart'
+import { formatPrice, priceToNumber, useCart, type CartItem } from '@/hooks/useCart'
 import { useAuth } from '@/hooks/useAuth'
 import { sizeGuideTypes, sizeGuides, type SizeGuideType } from '@/lib/sizeGuide'
 import type { Product } from '@/lib/products'
@@ -119,8 +119,15 @@ function ProductDetail({ product }: ProductDetailProps) {
       window.location.href = `/login?redirect=${encodeURIComponent(`/produk/${product.id}`)}`
       return
     }
-    addToCart(product, selectedSize, selectedColor)
-    window.history.pushState({}, '', '/checkout')
+    const buyNowItem: CartItem = {
+      id: `${product.id}-${selectedSize}-${selectedColor}`,
+      product,
+      size: selectedSize,
+      color: selectedColor,
+      quantity: 1,
+    }
+    window.localStorage.setItem('crousel-buy-now', JSON.stringify(buyNowItem))
+    window.history.pushState({}, '', '/checkout?buy_now=1')
     window.dispatchEvent(new PopStateEvent('popstate'))
   }
 

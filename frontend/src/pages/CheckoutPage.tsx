@@ -1,9 +1,9 @@
 import { Check, LoaderCircle, MapPin, Package, Truck } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/atoms/ui/button";
 import { AppShell } from "@/components/templates/AppShell";
-import { formatPrice, priceToNumber, useCart } from "@/hooks/useCart";
+import { formatPrice, priceToNumber, useCart, type CartItem } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { loadMidtransSnap } from "@/lib/midtrans";
 
@@ -23,9 +23,22 @@ function navigateToPayment(orderId: string) {
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
+function readBuyNowItem(): CartItem | null {
+  if (new URLSearchParams(window.location.search).get("buy_now") !== "1") return null;
+  try {
+    const value = JSON.parse(window.localStorage.getItem("crousel-buy-now") || "null") as CartItem | null;
+    return value?.product && value.size && value.color ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 export function CheckoutPage() {
-  const { items, subtotal, clearCart } = useCart();
+  const { items, clearCart } = useCart();
   const { user } = useAuth();
+  const [buyNowItem] = useState<CartItem | null>(readBuyNowItem);
+  const checkoutItems = useMemo(() => (buyNowItem ? [buyNowItem] : items), [buyNowItem, items]);
+  const checkoutSubtotal = checkoutItems.reduce((sum, item) => sum + priceToNumber(item.product.price) * item.quantity, 0);
   const [shippingId, setShippingId] = useState("pickup");
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([pickupMethod]);
   const [shippingLoading, setShippingLoading] = useState(false);
@@ -36,8 +49,8 @@ export function CheckoutPage() {
   const idempotencyKey = useRef<string | null>(null);
 
   const selectedShipping = shippingMethods.find((item) => item.id === shippingId) ?? pickupMethod;
-  const total = subtotal + selectedShipping.price;
-  const totalWeight = items.reduce((sum, item) => sum + (item.product.weight ?? 500) * item.quantity, 0);
+  const total = checkoutSubtotal + selectedShipping.price;
+  const totalWeight = checkoutItems.reduce((sum, item) => sum + (item.product.weight ?? 500) * item.quantity, 0);
   const hasSavedAddress = Boolean(user?.province && user?.city && user?.district && user?.village && user?.address && user?.districtId);
   // Checkout never loads RajaOngkir location lists. The saved district ID from
   // the backend is enough to calculate shipping costs.
@@ -67,7 +80,7 @@ export function CheckoutPage() {
   }, [hasSavedAddress]);
 
   useEffect(() => {
-    if (!hasSavedAddress || shippingConfigLoading || !districtForShipping || items.length === 0) return;
+    if (!hasSavedAddress || shippingConfigLoading || !districtForShipping || checkoutItems.length === 0) return;
     const controller = new AbortController();
     const loadShippingCosts = async () => {
       setShippingLoading(true);
@@ -115,9 +128,9 @@ export function CheckoutPage() {
     };
     void loadShippingCosts();
     return () => controller.abort();
-  }, [districtForShipping, enabledCouriers, hasSavedAddress, items, shippingConfigLoading, totalWeight]);
+  }, [districtForShipping, enabledCouriers, hasSavedAddress, checkoutItems, shippingConfigLoading, totalWeight]);
 
-  const canSubmit = Boolean(items.length > 0 && hasSavedAddress && shippingId && !shippingLoading && !creatingPayment);
+  const canSubmit = Boolean(checkoutItems.length > 0 && hasSavedAddress && shippingId && !shippingLoading && !creatingPayment);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -131,7 +144,7 @@ export function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
-          items: items.map((item) => ({
+          items: checkoutItems.map((item) => ({
             product_id: item.product.id,
             size: item.size,
             color: item.color,
@@ -147,7 +160,8 @@ export function CheckoutPage() {
       });
       const result = await response.json() as { data?: { order_id?: string; snap_token?: string }; message?: string };
       if (!response.ok || !result.data?.order_id || !result.data.snap_token) throw new Error(result.message || "Gagal membuat transaksi pembayaran.");
-      clearCart();
+      if (!buyNowItem) clearCart();
+      window.localStorage.removeItem("crousel-buy-now");
       const snap = await loadMidtransSnap();
       window.localStorage.setItem("crousel-last-order-id", result.data.order_id);
       snap.pay(result.data.snap_token, {
@@ -163,7 +177,7 @@ export function CheckoutPage() {
     }
   };
 
-  if (items.length === 0) {
+  if (checkoutItems.length === 0) {
     return (
       <AppShell>
         <section className="mx-auto max-w-[90rem] px-4 py-20 text-center sm:px-6 lg:px-8">
@@ -267,7 +281,7 @@ export function CheckoutPage() {
             <aside className="rounded-2xl border border-border bg-card p-5 sm:p-6 lg:sticky lg:top-28">
               <h2 className="text-lg font-bold">Pesanan kamu</h2>
               <div className="mt-5 space-y-4">
-                {items.map((item) => (
+                {checkoutItems.map((item) => (
                   <div key={item.id} className="flex gap-3">
                     <img
                       src={item.product.images[0]}
@@ -292,7 +306,7 @@ export function CheckoutPage() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>{formatPrice(checkoutSubtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Pengiriman</span>

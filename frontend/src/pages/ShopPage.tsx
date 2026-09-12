@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ShoppingBag } from 'lucide-react'
-
-import { Button } from '@/components/atoms/ui/button'
 import { CategoryFilter, CategoryFilterSkeleton } from '@/components/molecules/CategoryFilter'
 import { ProductCard, ProductSkeleton } from '@/components/molecules/ProductCard'
 import { InnerPageLayout } from '@/components/templates/InnerPageLayout'
@@ -83,9 +80,6 @@ export function ShopPage() {
               {searchQuery && ` · Hasil pencarian “${searchQuery}”`}
               {selectedCategory !== allCategories && ` · ${selectedCategory}`}
             </p>
-            <Button variant="outline" size="sm" className="rounded-full">
-              Urutkan <ShoppingBag aria-hidden="true" className="size-4" />
-            </Button>
           </div>
         </div>
         {loading ? (

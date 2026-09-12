@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { SizeGuideTable } from '@/components/molecules/SizeGuideTable'
 import { sizeGuideTypes, sizeGuides, type SizeGuideType } from '@/lib/sizeGuide'
+import { ArrowRight } from 'lucide-react'
 
 type SizeGuideSectionProps = {
   showLink?: boolean
@@ -25,7 +26,7 @@ export function SizeGuideSection({ showLink = true, imageSrc }: SizeGuideSection
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Panduan ukuran</p>
               <h2 className="mt-2 text-3xl tracking-tight">Tabel ukuran {selectedGuide.label}</h2>
             </div>
-            {showLink && <a href="/panduan-ukuran" className="text-sm font-semibold">Panduan lengkap</a>}
+            {showLink && <a href="/panduan-ukuran" className="text-sm font-semibold flex items-center gap-1">Panduan lengkap <ArrowRight aria-hidden="true" className="size-5" /></a>}
           </div>
           <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Pilih jenis ukuran">
             {sizeGuideTypes.map((type) => {

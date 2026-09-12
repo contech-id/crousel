@@ -1,11 +1,11 @@
-import { CreditCard, FileText, MessageCircle, Ruler, ShoppingBag } from 'lucide-react'
+import { CreditCard, FileText, Ruler, Search, ShoppingBag } from 'lucide-react'
 
 const steps = [
-  { number: '01', icon: Ruler, title: 'Periksa ukuran', description: 'Periksa kembali ukuran pada panduan size chart kaki.' },
-  { number: '02', icon: MessageCircle, title: 'Tanyakan detail', description: 'Tanyakan ukuran dan warna sebelum order agar transaksi lancar.' },
-  { number: '03', icon: FileText, title: 'Tuliskan pesanan', description: 'Tuliskan detail order dengan lengkap dan benar.' },
-  { number: '04', icon: ShoppingBag, title: 'Cantumkan keterangan', description: 'Cantumkan ukuran dan warna pada kolom keterangan pembelian.' },
-  { number: '05', icon: CreditCard, title: 'Lakukan pembayaran', description: 'Bayar sesuai metode dan unggah bukti jika diperlukan.' },
+  { number: '01', icon: Search, title: 'Pilih produk', description: 'Temukan produk sepatu atau sandal favorit dari katalog kami.' },
+  { number: '02', icon: Ruler, title: 'Pilih warna & ukuran', description: 'Pastikan ukuran dan warna pilihan Anda sudah sesuai panduan.' },
+  { number: '03', icon: ShoppingBag, title: 'Masuk keranjang', description: 'Tambahkan produk ke keranjang untuk melanjutkan transaksi.' },
+  { number: '04', icon: FileText, title: 'Checkout & pesanan', description: 'Isi detail alamat pengiriman dengan lengkap dan benar.' },
+  { number: '05', icon: CreditCard, title: 'Lakukan pembayaran', description: 'Bayar pesanan menggunakan metode pembayaran yang tersedia.' },
 ]
 
 type OrderStepsSectionProps = {

@@ -46,11 +46,11 @@ export function ScrollStackSection({ imageSources }: { imageSources?: readonly (
       <div className="mx-auto max-w-[90rem]">
         <div className="max-w-2xl" data-aos="fade-up">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Cerita di setiap langkah</p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">Scroll untuk mengenal Crousel lebih dekat.</h2>
+          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">Kenali Crousel lebih dekat.</h2>
           <p className="mt-4 text-sm leading-6 text-muted-foreground sm:text-base">Tiga prinsip yang membuat setiap pasangan Crousel terasa nyaman dan mudah menjadi bagian dari harimu.</p>
         </div>
 
-        <ScrollStack className="mt-4" itemDistance={70} itemStackDistance={24} baseScale={0.9} scaleEndPosition="8%" stackPosition="18%" useWindowScroll>
+        <ScrollStack itemDistance={70} itemStackDistance={24} baseScale={0.9} scaleEndPosition="8%" stackPosition="18%" useWindowScroll>
           {stories.map((story, index) => (
             <ScrollStackItem key={story.eyebrow} itemClassName={`overflow-hidden rounded-[2rem] p-0 shadow-xl ${story.className}`}>
               <div className="grid h-full min-h-0 items-stretch md:grid-cols-[1fr_0.9fr]">

@@ -108,8 +108,8 @@ export function TestimonialsSection() {
       <div className="mx-auto max-w-[90rem]">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-5 sm:mb-10" data-aos="fade-up">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Kata mereka</p>
-            <h2 className="mt-3 max-w-xl text-3xl font-black tracking-tight sm:text-5xl">Langkah nyaman yang diceritakan kembali.</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Apa kata mereka</p>
+            <h2 className="mt-3 max-w-xl text-3xl font-black tracking-tight sm:text-5xl">Nyaman banget dipakai, ini buktinya.</h2>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={showPrevious} aria-label="Testimoni sebelumnya" className="flex size-10 items-center justify-center rounded-full border border-border bg-background transition-colors hover:bg-accent"><ChevronLeft aria-hidden="true" className="size-4" /></button>
